@@ -1,0 +1,15 @@
+Date : 2023-1-1
+
+
+file_path : ./datasets
+
+WorkPackageFilename : WorkPackageData.xlsx
+TrainDataFilename : TrainData.xlsx
+LastMaintenTimeFilename : LastMaintenTime.xlsx
+today : 2023-3-8
+NumberOfMaintenTrainsPerDay: 3
+
+
+SpecialWorkPackage : 1601-01 1602-01 1603-01 1801-01 1802-01 1803-01 1804-01
+
+seed : 1
