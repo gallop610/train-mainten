@@ -5,7 +5,7 @@ class TrainData(object):
     Args:
         object (_type_): _description_
     '''
-    def __init__(self, train_data, today) -> None:
+    def __init__(self, train_data) -> None:
         '''
         这是TrainDataManagement的初始化函数，用于从train_data中读取数据并初始化TrainDataManagement类的实例。
 
@@ -20,9 +20,6 @@ class TrainData(object):
         
         # 上线日期, datetime
         self.Online_Date:datetime = datetime.strptime(train_data['Online_Date'], "%Y-%m-%d")
-        
-        # 列车距离生命结束剩余天数, int
-        # self.Train_Remaining_Life:int = Compute_Days_Train_Remaining_Life(datetime.strptime(train_data['Online_Date'], "%Y-%m-%d"), today)
 
         # 里程记录日期
         self.Mileage_Record_Date:datetime = datetime.strptime(train_data['Mileage_Record_Date'], "%Y-%m-%d")

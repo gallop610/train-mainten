@@ -6,10 +6,9 @@ import random
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pdb
-import matplotlib.pyplot as plt
 import math
 
-def wholelife_plan(all_workpackage, config):
+def wholelife_plan(wholelife_workpackage, config):
     """
     Generate a whole life plan for a given set of work packages and configuration.
 
@@ -24,6 +23,8 @@ def wholelife_plan(all_workpackage, config):
     # 初始化参数
     today = convert_str_to_date(config['today'])
     current_quarter = convert_day_to_quarter(today)
+    over_repair_restrictions_on_turnover = int(config['over_repair_restrictions_on_turnover'])
+    over_repair_restrictions_on_not_turnover = float(config['over_repair_restrictions_on_not_turnover'])
     
     # 初始化季度负载工时
     quarter_list = gen_quarter_120(current_quarter)
@@ -31,10 +32,7 @@ def wholelife_plan(all_workpackage, config):
     for quarter in quarter_list:
         quarter_worktime_load[quarter] = 0
     
-    # 挑选维修间隔大于90天的工作包
-    wholelife_workpackage = _select_interval_greater_90(all_workpackage)
-    
-    # 筛选含有周转件约束的工作包和不含周转件约束的工作包
+    # # 筛选含有周转件约束的工作包和不含周转件约束的工作包
     turnover_package, not_turnover_package = _select_turnover_package(wholelife_workpackage)
     
     # 统计同一时间上线的列车数量，以时间作为key，列车数量作为value
@@ -75,9 +73,9 @@ def wholelife_plan(all_workpackage, config):
                 upper_bound = add_quarters(end_mainten_quarter, -1)
                 
             if not isinstance(work.Shared_Cooling_Work_Package_Number, str) and np.isnan(work.Shared_Cooling_Work_Package_Number):
-                float_range_lb = math.ceil(len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+2
+                float_range_lb = math.ceil(len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+over_repair_restrictions_on_turnover
             else:
-                float_range_lb = math.ceil(2*len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+2
+                float_range_lb = math.ceil(2*len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+over_repair_restrictions_on_turnover
             
             lower_bound = add_quarters(next_mainten_quarter, -int(float_range_lb))
             if random.random() < float_range_lb-int(float_range_lb)-1e-9:
@@ -115,7 +113,7 @@ def wholelife_plan(all_workpackage, config):
     
     work_load_quarter = list(quarter_worktime_load.values())
 
-    plt.plot(work_load_quarter, label='turnover')
+
 
     # 添加标题和标签
     
@@ -147,7 +145,7 @@ def wholelife_plan(all_workpackage, config):
             if compare_quarters(upper_bound, end_mainten_quarter) != 1:
                 upper_bound = add_quarters(end_mainten_quarter, -1)
                 
-            float_range_lb = interval_quarter*0.10
+            float_range_lb = interval_quarter*over_repair_restrictions_on_not_turnover
             lower_bound = add_quarters(next_mainten_quarter, -int(float_range_lb))
             if random.random() < float_range_lb-int(float_range_lb):
                 lower_bound = add_quarters(lower_bound, -1)
@@ -164,36 +162,7 @@ def wholelife_plan(all_workpackage, config):
             # 更新下一次维修季度
             next_mainten_quarter = add_quarters(next_mainten_quarter, interval_quarter)
 
-    work_load_quarter = list(quarter_worktime_load.values())
-
-    plt.plot(work_load_quarter, label='all')
-
-    # 添加标题和标签
-    plt.legend()
-    plt.xlabel("Q")
-    plt.ylabel("sum")
-    plt.title("sum of time")
-
-    # 保存图为PNG文件
-    plt.savefig("time sum_all.png")
-
     return turnover_package+not_turnover_package
-    
-def _select_interval_greater_90(workpackage):
-    """
-    挑选维修间隔大于90天的工作包
-
-    Args:
-        workpackage (list): A list of WorkPackage objects.
-
-    Returns:
-        A list of WorkPackage objects whose Work_Package_Interval_Conversion_Value is greater than 90.
-    """
-    WorkPackage_WholeLife = []
-    for work in workpackage:
-        if work.Work_Package_Interval_Conversion_Value > 90:
-            WorkPackage_WholeLife.append(work)
-    return WorkPackage_WholeLife
 
 def _select_turnover_package(wholelife_workpackage):
     """
@@ -247,13 +216,13 @@ def _quarter_turnover_constraint(turnover_package, quarter_list):
         if not isinstance(work.Shared_Cooling_Work_Package_Number,str) and np.isnan(work.Shared_Cooling_Work_Package_Number):
             turnover_quarter_constrain = {}
             for quarter in quarter_list:
-                turnover_quarter_constrain[quarter] = int(90/work.Cooling_Time)
+                turnover_quarter_constrain[quarter] = int(30/work.Cooling_Time)*3
             turnover_cd[work.Work_Package_Number] = turnover_quarter_constrain
         else:
             if work.Work_Package_Number not in turnover_cd and work.Shared_Cooling_Work_Package_Number not in turnover_cd:
                 turnover_quarter_constrain = {}
                 for quarter in quarter_list:
-                    turnover_quarter_constrain[quarter] = int(90/work.Cooling_Time)
+                    turnover_quarter_constrain[quarter] = int(30/work.Cooling_Time)*3
                 turnover_cd[work.Work_Package_Number] = turnover_quarter_constrain
                 turnover_cd[work.Shared_Cooling_Work_Package_Number] = turnover_quarter_constrain
     return turnover_cd

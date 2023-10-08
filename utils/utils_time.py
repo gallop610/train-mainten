@@ -35,6 +35,20 @@ def convert_day_to_quarter(day):
         quarter = f"{year}Q4"
     return quarter
 
+def convert_day_to_month(day):
+    """
+    将日期转换为月份，返回月份字符串，格式为YYYY-MM。
+    
+    Args:
+        day: datetime.date类型，需要转换的日期。
+    
+    Returns:
+        返回月份字符串，格式为YYYY-MM。
+    """
+    month = day.month
+    year = day.year
+    return f"{year}-{month:02d}"
+
 def gen_quarter_120(str_quarter):
     """
     生成一个包含120个季度的列表，从给定的季度开始，每次加1个季度，直到120个季度。
@@ -61,6 +75,32 @@ def gen_quarter_120(str_quarter):
         cnt += 1
     return quarters
 
+def gen_month_360(str_month):
+    """
+    生成一个包含360个月份的列表，从给定的月份开始，每次加1个月，直到360个月。
+    
+    参数：
+        str_month：str类型，表示开始的月份，格式为"YYYY-MM"，其中YYYY表示年份，MM表示月份，如"2022-03"表示2022年3月。
+    
+    返回：
+        months：list类型，包含360个月份的列表，每个月份的格式为"YYYY-MM"，如["2022-03", "2022-04", "2022-05", ...]
+    """
+    months = []
+    current_month = str_month
+    cnt = 0
+    while cnt < 360:
+        months.append(current_month)
+        year, month = current_month.split('-')
+        month = int(month)
+        if month == 12:
+            year = str(int(year) + 1)
+            month = 1
+        else:
+            month += 1
+        current_month = f"{year}-{month:02d}"
+        cnt += 1
+    return months
+
 def add_quarters(str_quarter, cnt):
     """
     将给定的季度字符串加上指定的季度数，返回新的季度字符串。
@@ -80,6 +120,26 @@ def add_quarters(str_quarter, cnt):
     year = dt.year
     quarter = (dt.month-1)//3 + 1
     return f"{year}Q{quarter}"
+
+def add_months(str_month, cnt):
+    """
+    将给定的月份字符串加上指定的月份数，返回新的月份字符串。
+    
+    Args:
+    - str_month (str): 给定的月份字符串，格式为 "YYYY-MM"，其中 YYYY 表示年份，MM 表示月份。
+    - cnt (int): 指定的月份数，可以为正数、负数或零。
+    
+    Returns:
+    - str: 新的月份字符串，格式同输入的月份字符串。
+    """
+    
+    year, month = str_month.split('-')
+    month = int(month)
+    dt = datetime(int(year), month, 1)
+    dt += relativedelta(months=cnt) 
+    year = dt.year
+    month = dt.month
+    return f"{year}-{month:02d}"
 
 def compare_quarters(a, b):
     """
@@ -103,6 +163,28 @@ def compare_quarters(a, b):
     else:
         return -1
 
+def compare_months(a, b):
+    """
+    Compares two months and returns True if a < b, False otherwise.
+    
+    Args:
+        a (str): A string representing a month in the format "YYYY-MM".
+        b (str): A string representing a month in the format "YYYY-MM".
+    
+    Returns:
+        int: 1 if a < b, 0 if a==b, -1 if a > b.
+    """
+    year_a, month_a = a.split('-')
+    year_b, month_b = b.split('-')
+    if year_a < year_b:
+        return 1
+    elif year_a == year_b and month_a < month_b:
+        return 1
+    elif year_a == year_b and month_a == month_b:
+        return 0
+    else:
+        return -1
+
 # 两个季度之间的所有季度
 def gen_all_quarters(start_quarter, end_quarter):
     quarters = []
@@ -120,6 +202,23 @@ def gen_all_quarters(start_quarter, end_quarter):
     quarters.append(end_quarter)
     return quarters
 
+# 两个月份之间的所有月份
+def gen_all_months(start_month, end_month):
+    months = []
+    current_month = start_month
+    while current_month != end_month:
+        months.append(current_month)
+        year, month = current_month.split('-')
+        month = int(month)
+        if month == 12:
+            year = str(int(year) + 1)
+            month = 1
+        else:
+            month += 1
+        current_month = f"{year}-{month:02d}"
+    months.append(end_month)
+    return months
+
 # 两个季度之间相差多少个季度
 def quarter_difference(start_quarter, end_quarter):
     # print(start_quarter, end_quarter)
@@ -128,4 +227,35 @@ def quarter_difference(start_quarter, end_quarter):
     if start_date > end_date:
         start_date, end_date = end_date, start_date
     difference = (end_date.year - start_date.year) * 4 + (end_date.month - start_date.month) // 3
+    return difference
+
+def gen_all_months_on_quarter(str_quarter):
+    """
+    生成一个包含3个月份的列表，从给定的季度开始，每次加1个月，直到3个月。
+    
+    参数：
+        str_quarter：str类型，表示开始的季度，格式为"YYYYQX"，其中YYYY表示年份，QX表示季度数，如"2022Q3"表示2022年第3季度。
+    
+    返回：
+        months：list类型，包含3个月份的列表，每个月份的格式为"YYYY-MM"，如["2022-07", "2022-08", "2022-09"]
+    """
+    year, quarter = str_quarter.split('Q')
+    if quarter == '1':
+        months= [f'{year}-01', f'{year}-02', f'{year}-03']
+    elif quarter == '2':
+        months= [f'{year}-04', f'{year}-05', f'{year}-06']
+    elif quarter == '3':
+        months= [f'{year}-07', f'{year}-08', f'{year}-09']
+    else:
+        months= [f'{year}-10', f'{year}-11', f'{year}-12']
+    return months
+
+# 两个月份之间相差多少个月份
+def month_difference(start_month, end_month):
+    # print(start_quarter, end_quarter)
+    start_date = datetime.strptime(start_month, '%Y-%m')
+    end_date = datetime.strptime(end_month, '%Y-%m')
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    difference = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
     return difference
