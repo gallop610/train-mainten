@@ -23,8 +23,8 @@ def wholelife_plan(wholelife_workpackage, config):
     # 初始化参数
     today = convert_str_to_date(config['today'])
     current_quarter = convert_day_to_quarter(today)
-    over_repair_restrictions_on_turnover = int(config['over_repair_restrictions_on_turnover'])
-    over_repair_restrictions_on_not_turnover = float(config['over_repair_restrictions_on_not_turnover'])
+    turnover_overtake_quarter = int(config['turnover_overtake_quarter'])
+    wholelife_overtake_percentage = float(config['wholelife_overtake_percentage'])
     
     # 初始化季度负载工时
     quarter_list = gen_quarter_120(current_quarter)
@@ -73,9 +73,9 @@ def wholelife_plan(wholelife_workpackage, config):
                 upper_bound = add_quarters(end_mainten_quarter, -1)
                 
             if not isinstance(work.Shared_Cooling_Work_Package_Number, str) and np.isnan(work.Shared_Cooling_Work_Package_Number):
-                float_range_lb = math.ceil(len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+over_repair_restrictions_on_turnover
+                float_range_lb = math.ceil(len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+turnover_overtake_quarter
             else:
-                float_range_lb = math.ceil(2*len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+over_repair_restrictions_on_turnover
+                float_range_lb = math.ceil(2*len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+turnover_overtake_quarter
             
             lower_bound = add_quarters(next_mainten_quarter, -int(float_range_lb))
             if random.random() < float_range_lb-int(float_range_lb)-1e-9:
@@ -145,7 +145,7 @@ def wholelife_plan(wholelife_workpackage, config):
             if compare_quarters(upper_bound, end_mainten_quarter) != 1:
                 upper_bound = add_quarters(end_mainten_quarter, -1)
                 
-            float_range_lb = interval_quarter*over_repair_restrictions_on_not_turnover
+            float_range_lb = interval_quarter*wholelife_overtake_percentage
             lower_bound = add_quarters(next_mainten_quarter, -int(float_range_lb))
             if random.random() < float_range_lb-int(float_range_lb):
                 lower_bound = add_quarters(lower_bound, -1)

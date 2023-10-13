@@ -10,6 +10,7 @@ def read_excel_file(file_path):
     return df.values.tolist()[1:]
 
 def draw_worktime_load(data, model):
+    plt.clf()
     if model == 'wholelife':
         s1 = 'Quarters'
         s2 = 'Quarterly Worktime Load'
@@ -63,3 +64,6 @@ if __name__ == '__main__':
     file_path = './results/年计划.xlsx'
     r = read_excel_file(file_path)
     draw_worktime_load(r,'year')
+    file_path = './results/全寿命计划.xlsx'
+    r = read_excel_file(file_path)
+    draw_worktime_load(r,'wholelife')

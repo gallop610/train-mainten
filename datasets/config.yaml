@@ -1,9 +1,11 @@
 # Date : 2023-1-1
 # 全寿命计划过修参数
 # 季度
-over_repair_restrictions_on_turnover: 2
+turnover_overtake_quarter: 3
 # 百分比
-over_repair_restrictions_on_not_turnover: 0.1
+wholelife_overtake_percentage: 0.10
+# 月份
+year_overtake_percentage: 0.05
 
 
 

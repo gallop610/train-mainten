@@ -13,6 +13,7 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
     # 初始化参数
     today = convert_str_to_date(config['today'])
     current_month = convert_day_to_month(today)
+    year_overtake_percentage = float(config['year_overtake_percentage'])
     
     # 初始化月负载工时
     month_list = gen_month_360(current_month)
@@ -106,7 +107,7 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
             if compare_months(upper_bound, end_mainten_month) != 1:
                 upper_bound = add_months(end_mainten_month, -1)
             
-            float_range_lb = interval_month*0.05
+            float_range_lb = interval_month*year_overtake_percentage
             # 以一定的概率将下一次维修月份向前推迟一个季度，具体取决于维修间隔的月份
             lower_bound = add_months(next_mainten_month, -int(float_range_lb))
             if random.random() < float_range_lb - int(float_range_lb)-1e-9:
