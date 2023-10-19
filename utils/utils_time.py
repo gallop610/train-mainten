@@ -141,6 +141,22 @@ def add_months(str_month, cnt):
     month = dt.month
     return f"{year}-{month:02d}"
 
+def add_days(str_day, cnt):
+    """
+    将给定的日期字符串加上指定的天数，返回新的日期字符串。
+    
+    Args:
+    - str_day (str): 给定的日期字符串，格式为 "YYYY-MM-DD"，其中 YYYY 表示年份，MM 表示月份，DD 表示日期。
+    - cnt (int): 指定的天数，可以为正数、负数或零。
+    
+    Returns:
+    - str: 新的日期字符串，格式同输入的日期字符串。
+    """
+    
+    dt = datetime.strptime(str_day, '%Y-%m-%d')
+    dt += relativedelta(days=cnt) 
+    return dt.strftime('%Y-%m-%d')
+
 def compare_quarters(a, b):
     """
     Compares two quarters and returns True if a < b, False otherwise.
@@ -152,8 +168,8 @@ def compare_quarters(a, b):
     Returns:
         int: 1 if a < b, 0 if a==b, -1 if a > b.
     """
-    year_a, quarter_a = a.split('Q')
-    year_b, quarter_b = b.split('Q')
+    year_a, quarter_a = map(int, a.split('Q'))
+    year_b, quarter_b = map(int, b.split('Q'))
     if year_a < year_b:
         return 1
     elif year_a == year_b and quarter_a < quarter_b:
@@ -184,6 +200,7 @@ def compare_months(a, b):
         return 0
     else:
         return -1
+
 
 # 两个季度之间的所有季度
 def gen_all_quarters(start_quarter, end_quarter):
@@ -222,11 +239,11 @@ def gen_all_months(start_month, end_month):
 # 两个季度之间相差多少个季度
 def quarter_difference(start_quarter, end_quarter):
     # print(start_quarter, end_quarter)
-    start_date = datetime.strptime(start_quarter, '%YQ%m')
-    end_date = datetime.strptime(end_quarter, '%YQ%m')
-    if start_date > end_date:
-        start_date, end_date = end_date, start_date
-    difference = (end_date.year - start_date.year) * 4 + (end_date.month - start_date.month) // 3
+    if compare_quarters(start_quarter, end_quarter) == -1:
+        start_quarter, end_quarter = end_quarter, start_quarter
+    start_year, start_q = map(int, start_quarter.split('Q'))
+    end_year, end_q = map(int, end_quarter.split('Q'))
+    difference = (end_year - start_year) * 4 + (end_q - start_q)
     return difference
 
 def gen_all_months_on_quarter(str_quarter):
@@ -252,10 +269,10 @@ def gen_all_months_on_quarter(str_quarter):
 
 # 两个月份之间相差多少个月份
 def month_difference(start_month, end_month):
-    # print(start_quarter, end_quarter)
-    start_date = datetime.strptime(start_month, '%Y-%m')
-    end_date = datetime.strptime(end_month, '%Y-%m')
-    if start_date > end_date:
-        start_date, end_date = end_date, start_date
-    difference = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
+    if compare_months(start_month, end_month) == -1:
+        start_month, end_month = end_month, start_month
+    start_year, start_m = map(int, start_month.split('-'))
+    end_year, end_m = map(int, end_month.split('-'))
+    difference = (end_year - start_year) * 12 + (end_m - start_m)
     return difference
+

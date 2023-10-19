@@ -2,6 +2,7 @@ import os
 import yaml
 import pandas as pd
 from collections import defaultdict
+from datetime import datetime
 
 def read_file_config(yaml_file_path) -> dict:
     '''
@@ -108,8 +109,15 @@ def read_Last_Mainten_Time(filename) -> list:
         # 提取前两个元素作为键
         key = data[0:2]
         # 剩下的元素是物资信息     
-        materials = data[2:]  
-        Last_Mainten_Time[key].add(materials)
+        materials = data[2:] 
+        if key in Last_Mainten_Time:
+            # 比较日期，选择日期大的
+            date1 = datetime.strptime(list(Last_Mainten_Time[key])[2], "%Y-%m-%d")
+            date2 = datetime.strptime(materials[2], "%Y-%m-%d")
+            if date2 > date1:
+                Last_Mainten_Time[key] = materials
+        else:
+            Last_Mainten_Time[key] = materials
     return Last_Mainten_Time
     
     

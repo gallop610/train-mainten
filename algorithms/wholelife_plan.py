@@ -22,11 +22,13 @@ def wholelife_plan(wholelife_workpackage, config):
     
     # 初始化参数
     today = convert_str_to_date(config['today'])
+    alpha = float(config['alpha'])
     current_quarter = convert_day_to_quarter(today)
     turnover_overtake_quarter = int(config['turnover_overtake_quarter'])
     wholelife_overtake_percentage = float(config['wholelife_overtake_percentage'])
     
-    # 初始化季度负载工时
+    # 初始化季度负载工时,维修间隔
+    sum_interval = 0
     quarter_list = gen_quarter_120(current_quarter)
     quarter_worktime_load = {}
     for quarter in quarter_list:
@@ -65,9 +67,9 @@ def wholelife_plan(wholelife_workpackage, config):
         
         while compare_quarters(next_mainten_quarter, end_mainten_quarter) == 1:
             float_range_ub = interval_quarter*0.05
-            # 以一定的概率将下一次维修季度向后推迟一个季度，具体取决于维修间隔的季度
+            # 维修季度间隔大于0.85时，默认增加一个季度
             upper_bound = add_quarters(next_mainten_quarter, int(float_range_ub))
-            if random.random() < float_range_ub-int(float_range_ub):
+            if random.random()/4 < float_range_ub-int(float_range_ub):
                 upper_bound = add_quarters(upper_bound, 1)
             if compare_quarters(upper_bound, end_mainten_quarter) != 1:
                 upper_bound = add_quarters(end_mainten_quarter, -1)
@@ -77,9 +79,7 @@ def wholelife_plan(wholelife_workpackage, config):
             else:
                 float_range_lb = math.ceil(2*len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+turnover_overtake_quarter
             
-            lower_bound = add_quarters(next_mainten_quarter, -int(float_range_lb))
-            if random.random() < float_range_lb-int(float_range_lb)-1e-9:
-                lower_bound = add_quarters(lower_bound, -1)
+            lower_bound = add_quarters(upper_bound, -int(float_range_lb))
                 
             if compare_quarters(lower_bound, current_quarter) == 1:
                 lower_bound = current_quarter
@@ -97,8 +97,9 @@ def wholelife_plan(wholelife_workpackage, config):
                         range = gen_all_quarters(lower_bound, lower_bound)
                     continue
                     
-                min_worktime_load_quarter = _select_less_quarter_worktime_load(quarter_worktime_load, range, next_mainten_quarter)
+                min_worktime_load_quarter = _select_less_quarter_worktime_load(quarter_worktime_load, sum_interval, range, work.Work_Package_Person_Day, next_mainten_quarter, 4.5*alpha)
                 if quarter_turnover_constraint[work.Work_Package_Number][min_worktime_load_quarter] > 0:
+                    sum_interval += quarter_difference(next_mainten_quarter, min_worktime_load_quarter)
                     next_mainten_quarter = min_worktime_load_quarter
                     break
                 else:
@@ -110,13 +111,9 @@ def wholelife_plan(wholelife_workpackage, config):
             quarter_worktime_load[next_mainten_quarter] += work.Work_Package_Person_Day
             # 更新下一次维修季度
             next_mainten_quarter = add_quarters(next_mainten_quarter, interval_quarter)
-    
-    work_load_quarter = list(quarter_worktime_load.values())
 
-
-
-    # 添加标题和标签
-    
+    # 排序
+    not_turnover_package.sort(key=lambda x: (x.Work_Package_Interval_Conversion_Value, x.Online_Date,  x.Cooling_Time, x.Train_Number, x.Work_Package_Number), reverse=False)
     # 不含周转件工作包的全寿命计划
     for work in not_turnover_package:
         work.mainten_quarter = []
@@ -134,27 +131,39 @@ def wholelife_plan(wholelife_workpackage, config):
         
         # 如果下一次标准维修的季度小于当前季度，则将下一次维修季度设置为当前季度
         if compare_quarters(next_mainten_quarter, current_quarter) == 1: # next_mainten_quarter < current_quarter
+            sum_interval += quarter_difference(next_mainten_quarter, current_quarter)
             next_mainten_quarter = current_quarter
+            work.mainten_quarter.append(next_mainten_quarter)
+            # 季度维修工时负载
+            quarter_worktime_load[next_mainten_quarter] += work.Work_Package_Person_Day
+            # 更新下一次维修季度
+            next_mainten_quarter = add_quarters(next_mainten_quarter, interval_quarter)
         
         while compare_quarters(next_mainten_quarter, end_mainten_quarter) == 1:
             float_range_ub = interval_quarter*0.05
             # 以一定的概率将下一次维修季度向后推迟一个季度，具体取决于维修间隔的季度
             upper_bound = add_quarters(next_mainten_quarter, int(float_range_ub))
-            if random.random() < float_range_ub-int(float_range_ub):
-                upper_bound = add_quarters(upper_bound, 1)
+            if work.Work_Package_Interval_Conversion_Value >=540:
+                if random.random()/2 < float_range_ub-int(float_range_ub):
+                    upper_bound = add_quarters(upper_bound, 1)
             if compare_quarters(upper_bound, end_mainten_quarter) != 1:
                 upper_bound = add_quarters(end_mainten_quarter, -1)
                 
             float_range_lb = interval_quarter*wholelife_overtake_percentage
             lower_bound = add_quarters(next_mainten_quarter, -int(float_range_lb))
-            if random.random() < float_range_lb-int(float_range_lb):
-                lower_bound = add_quarters(lower_bound, -1)
+            if work.Work_Package_Interval_Conversion_Value >= 540:
+                if random.random()/2 < float_range_lb-int(float_range_lb):
+                    lower_bound = add_quarters(lower_bound, -1)
                 
             if compare_quarters(lower_bound, current_quarter) == 1:
                 lower_bound = current_quarter
             
             range = gen_all_quarters(lower_bound, upper_bound)
-            min_worktime_load_quarter = _select_less_quarter_worktime_load(quarter_worktime_load, range, next_mainten_quarter)
+            if interval_quarter in [2, 4]:
+                min_worktime_load_quarter = _select_less_quarter_worktime_load(quarter_worktime_load, sum_interval, range, work.Work_Package_Person_Day, next_mainten_quarter, 800)
+            else:
+                min_worktime_load_quarter = _select_less_quarter_worktime_load(quarter_worktime_load, sum_interval, range, work.Work_Package_Person_Day, next_mainten_quarter, alpha)
+            sum_interval += quarter_difference(next_mainten_quarter, min_worktime_load_quarter)
             next_mainten_quarter = min_worktime_load_quarter
             work.mainten_quarter.append(next_mainten_quarter)
             # 季度维修工时负载
@@ -227,12 +236,10 @@ def _quarter_turnover_constraint(turnover_package, quarter_list):
                 turnover_cd[work.Shared_Cooling_Work_Package_Number] = turnover_quarter_constrain
     return turnover_cd
 
-def _select_less_quarter_worktime_load(quarter_worktime_load, range, next_mainten_quarter):
-    # range = gen_all_quarters(lb, ub)
-    index = '2000Q1'
-    value = float('inf')
+def _select_less_quarter_worktime_load(quarter_worktime_load, sum_interval, range, worktime, next_mainten_quarter, alpha):
+    min_value = float('inf')
+    all = {}
     for i in range:
-        if value >= quarter_worktime_load[i] and quarter_difference(i, next_mainten_quarter) < quarter_difference(index, next_mainten_quarter):
-            value = quarter_worktime_load[i]
-            index = i
-    return index
+        all[i] = (quarter_worktime_load[i]+worktime) + (sum_interval+quarter_difference(i, next_mainten_quarter))*alpha
+    min_key = min(all, key=all.get)
+    return min_key

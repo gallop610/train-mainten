@@ -46,16 +46,19 @@ def draw_worktime_load(data, model):
     all = [turnover_worktime_load[i] + not_turnover_worktime_load[i] for i in range(len(turnover_worktime_load))]
     
     # 绘制周转件约束负载和非周转件约束负载
-    plt.plot(turnover_worktime_load, label='turnover')
-    plt.plot(not_turnover_worktime_load, label='not turnover')
+    # plt.plot(turnover_worktime_load, label='turnover')
+    # plt.plot(not_turnover_worktime_load, label='not turnover')
     plt.plot(all, label='all', color='r')
 
     # 添加标题和标签
     plt.legend()
-    plt.xlabel(s1)
-    plt.ylabel(s2)
+    # plt.xlabel(s1)
+    # plt.ylabel(s2)
     plt.title(s3)
-
+    y_ticks = np.arange(0, (max(all)//500 +1)*500, 500)
+    plt.yticks(y_ticks)
+    for y_val in y_ticks:
+        plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
     # 保存图为PNG文件
     plt.savefig(s4)
     

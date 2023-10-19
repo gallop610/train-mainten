@@ -1,13 +1,14 @@
 # Date : 2023-1-1
 # 全寿命计划过修参数
 # 季度
-turnover_overtake_quarter: 3
+turnover_overtake_quarter: 0
 # 百分比
 wholelife_overtake_percentage: 0.10
 # 月份
 year_overtake_percentage: 0.05
 
-
+alpha: 20
+month_alpha: 50
 
 
 
