@@ -150,7 +150,7 @@ def Month_Plan(config):
         if key in year_plan:
             info.mainten_month = year_plan[key]
             year.append(info)
-        if info.Work_Package_Interval_Conversion_Value <=30:
+        if info.Work_Package_Interval_Conversion_Value in [8, 16, 30]:
             month.append(info)
     result = month_plan(month, year, config)
 

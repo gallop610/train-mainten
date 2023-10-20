@@ -101,6 +101,16 @@ def gen_month_360(str_month):
         cnt += 1
     return months
 
+def gen_day_10980(str_day):
+    days = []
+    current_day = str_day
+    cnt = 0
+    while cnt < 10980:
+        days.append(current_day)
+        current_day = add_days(current_day, 1)
+        cnt += 1
+    return days
+
 def add_quarters(str_quarter, cnt):
     """
     将给定的季度字符串加上指定的季度数，返回新的季度字符串。

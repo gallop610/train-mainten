@@ -160,19 +160,19 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
     return wholelife_workpackage + year_workpackage
 
 
-def _month_turnover_constraint(turnover_package, month_list):
+def _month_turnover_constraint(workpackage, month_list):
     """
     根据给定的周转包和季度列表，计算每个工作包在每个季度内的周转次数限制。
     
     Args:
-        turnover_package: 周转包，包含多个工作包。
+        workpackage: 周转包，包含多个工作包。
         quarter_list: 季度列表，包含多个季度。
     
     Returns:
         turnover_cd: 字典类型，包含每个工作包在每个季度内的周转次数限制。
     """
     turnover_cd = {}
-    for work in turnover_package:
+    for work in workpackage:
         if np.isnan(work.Cooling_Time):
             continue
         if not isinstance(work.Shared_Cooling_Work_Package_Number,str) and np.isnan(work.Shared_Cooling_Work_Package_Number):
