@@ -14,7 +14,7 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
     today = convert_str_to_date(config['today'])
     current_month = convert_day_to_month(today)
     year_overtake_percentage = float(config['year_overtake_percentage'])
-    alpha = float(config['month_alpha'])
+    alpha = float(config['year_alpha'])
     
     # 初始化月负载工时
     sum_interval = 0
@@ -24,14 +24,13 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
         month_worktime_load[month] = 0
         
     # 初始化季度的周转件约束
-    # turnover_package, not_turnover_package = _select_turnover_package(wholelife_workpackage)   
     month_turnover_constraint = _month_turnover_constraint(wholelife_workpackage, month_list)
 
         
     # 首先排产全寿命计划工作包
     for work in wholelife_workpackage:
         # print('1',work.Work_Package_Number)
-        if not np.isnan(work.Cooling_Time):
+        if work.Cooling_Time != 0:
             flag_tunover = True
         else:
             flag_tunover = False
@@ -91,12 +90,6 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
                 month_worktime_load[next_mainten_month] += work.Work_Package_Person_Day
                 next_mainten_month = add_months(next_mainten_month, interval_month)
             else:
-                # 选择最佳的月份
-                # pdb.set_trace()
-                # if work.Train_Number == 1 and work.Work_Package_Number =='0204-01':
-                #     print(work.mainten_quarter)
-                #     exit(0)
-                #     print(quarter, range_months)
                 if interval_month in range(1, 60):
                     min_month = _select_less_month_worktime_load(month_worktime_load, sum_interval, range_months, work.Work_Package_Person_Day, next_mainten_month, 400)
                 else:  
@@ -108,7 +101,6 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
                 next_mainten_month = add_months(next_mainten_month, interval_month)
         
     for work in year_workpackage:
-        # print('2',work.Work_Package_Number)
         work.mainten_month = []
         # 初始化基本信息
         start_mainten_month = convert_day_to_month(work.Online_Date)
@@ -125,7 +117,6 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
             next_mainten_month = current_month
         
         while compare_months(next_mainten_month, end_mainten_month) == 1:
-            # print(next_mainten_month,end_mainten_month, interval_month)
             float_range_ub = interval_month*0.05
             # 以一定的概率将下一次维修月份向后推迟一个季度，具体取决于维修间隔的月份
             upper_bound = add_months(next_mainten_month, int(float_range_ub))
@@ -142,20 +133,14 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
             if compare_months(lower_bound, current_month) != -1:
                 lower_bound = current_month
             
-            # print('upper_bound',upper_bound, 'lower_bound',lower_bound)
-            
             range_months = gen_all_months(lower_bound, upper_bound)
-            # print('range',range)
             # 选择最佳的月份
             min_month = _select_less_month_worktime_load(month_worktime_load, sum_interval, range_months, work.Work_Package_Person_Day, next_mainten_month, alpha)
-            # print('min_month',min_month)
             sum_interval += month_difference(min_month, next_mainten_month)
             next_mainten_month = min_month
             work.mainten_month.append(next_mainten_month)
             month_worktime_load[next_mainten_month] += work.Work_Package_Person_Day
-            # print('*', next_mainten_month)
             next_mainten_month = add_months(next_mainten_month, interval_month)
-            # print('*', next_mainten_month)
 
     return wholelife_workpackage + year_workpackage
 
@@ -173,9 +158,9 @@ def _month_turnover_constraint(workpackage, month_list):
     """
     turnover_cd = {}
     for work in workpackage:
-        if np.isnan(work.Cooling_Time):
+        if work.Cooling_Time == 0:
             continue
-        if not isinstance(work.Shared_Cooling_Work_Package_Number,str) and np.isnan(work.Shared_Cooling_Work_Package_Number):
+        if work.Shared_Cooling_Work_Package_Number == 'None':
             turnover_month_constrain = {}
             for month in month_list:
                 turnover_month_constrain[month] = int(30/work.Cooling_Time)

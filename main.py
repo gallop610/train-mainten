@@ -9,6 +9,7 @@ import time
 import random
 import pdb
 import pandas as pd
+from tqdm import tqdm
 
 def Wholelife_Plan(config):
     # 读取不同类型的工作包、列车、约束等数据
@@ -22,11 +23,16 @@ def Wholelife_Plan(config):
     SpecialWorkPackage = config['SpecialWorkPackage'].split()
     # 历史维修时间
     last_maintenance_time = read_Last_Mainten_Time(os.path.join(config['file_path'], config['LastMaintenTimeFilename']))
+    # 列车检修记录
+    Train_Mainten_Range = read_Train_Mainten_Range(os.path.join(config['file_path'], config['TrainMaintenRangeFilename']))
+    
     # 根据列车和工作包数据，初始化每一列车的工作包
     ALL_workpackage = []
     for train in Train_Data:
         ID = train.Train_Number
         for info in work_package:
+            if set([train.Train_Number,info.Work_Package_Number]) in Train_Mainten_Range:
+                continue
             workpackage = copy.deepcopy(info)
             workpackage.Train_Number = ID
             key = tuple([workpackage.Train_Number,workpackage.Work_Package_Number])
@@ -50,7 +56,7 @@ def Wholelife_Plan(config):
     output_wholeLife_plan(result)
     
     
-def read_exist_plan(file_path):
+def _read_exist_plan(file_path):
     """
     Given an excel file path, reads the contents of the file and returns a 2D list without the header row.
     """
@@ -79,10 +85,14 @@ def Year_Plan(config):
     # 历史维修时间
     last_maintenance_time = read_Last_Mainten_Time(os.path.join(config['file_path'], config['LastMaintenTimeFilename']))
     # 根据列车和工作包数据，初始化每一列车的工作包
+    Train_Mainten_Range = read_Train_Mainten_Range(os.path.join(config['file_path'], config['TrainMaintenRangeFilename']))
+    
     ALL_workpackage = []
     for train in Train_Data:
         ID = train.Train_Number
         for info in work_package:
+            if set([train.Train_Number,info.Work_Package_Number]) in Train_Mainten_Range:
+                continue
             workpackage = copy.deepcopy(info)
             workpackage.Train_Number = ID
             key = tuple([workpackage.Train_Number,workpackage.Work_Package_Number])
@@ -97,7 +107,7 @@ def Year_Plan(config):
     work_package = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract != '委外']
 
     # 读取全寿命计划表
-    wholelife_plan = read_exist_plan('./results/全寿命计划.xlsx')
+    wholelife_plan = _read_exist_plan('./results/全寿命计划.xlsx')
     wholelife = []
     year = []
     for info in work_package:
@@ -123,10 +133,14 @@ def Month_Plan(config):
     # 历史维修时间
     last_maintenance_time = read_Last_Mainten_Time(os.path.join(config['file_path'], config['LastMaintenTimeFilename']))
     # 根据列车和工作包数据，初始化每一列车的工作包
+    Train_Mainten_Range = read_Train_Mainten_Range(os.path.join(config['file_path'], config['TrainMaintenRangeFilename']))
+    
     ALL_workpackage = []
     for train in Train_Data:
         ID = train.Train_Number
-        for info in work_package:
+        for info in work_package:         
+            if set([train.Train_Number,info.Work_Package_Number]) in Train_Mainten_Range:
+                continue
             workpackage = copy.deepcopy(info)
             workpackage.Train_Number = ID
             key = tuple([workpackage.Train_Number,workpackage.Work_Package_Number])
@@ -138,14 +152,18 @@ def Month_Plan(config):
                 workpackage.last_mainten_mterial = 0
             workpackage.Online_Date = train.Online_Date
             ALL_workpackage.append(workpackage)
+            
+
+    
     
     work_package = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract != '委外']
-
+    
     # 读取年计划表
-    year_plan = read_exist_plan('./results/年计划.xlsx')
+    year_plan = _read_exist_plan('./results/年计划.xlsx')
     year = []
     month = []
-    for info in work_package:
+    print('正在将现有的年计划分配至工作包...')
+    for info in tqdm(work_package):
         key = tuple([info.Train_Number,info.Work_Package_Number])
         if key in year_plan:
             info.mainten_month = year_plan[key]
@@ -153,6 +171,7 @@ def Month_Plan(config):
         if info.Work_Package_Interval_Conversion_Value in [8, 16, 30]:
             month.append(info)
     result = month_plan(month, year, config)
+    output_month_plan(result)
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -165,10 +184,9 @@ if __name__ == '__main__':
     np.random.seed(int(config['seed']))
     random.seed(int(config['seed']))
     
-    # Wholelife_Plan(config)
-    # Year_Plan(config)
+    Wholelife_Plan(config)
+    Year_Plan(config)
     Month_Plan(config)
-    # month_plan(0,0,config=config)
     
     end_time = time.time()
     elapsed_time_in_seconds = end_time - start_time

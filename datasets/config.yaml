@@ -1,25 +1,53 @@
-# Date : 2023-1-1
-# 全寿命计划过修参数
-# 季度
-turnover_overtake_quarter: 0
-# 百分比
-wholelife_overtake_percentage: 0.10
-# 月份
-year_overtake_percentage: 0.05
+# 项目配置文件参数
 
-alpha: 20
-month_alpha: 50
+############################### 全项目：排产维修计划参数
 
-
-
-
-
-
+# 数据集文件夹路径
 file_path : ./datasets
+# 工作包数据文件名
 WorkPackageFilename : WorkPackageData.xlsx
+# 列车数据管理文件名
 TrainDataFilename : TrainData.xlsx
-LastMaintenTimeFilename : LastMaintenTime.xlsx
+# 上次维修数据管理文件名
+LastMaintenTimeFilename : 上次维修数据管理.xlsx
+# 列车检修范围管理文件名
+TrainMaintenRangeFilename : 列车检修范围管理.xlsx
+# 从该日期之后计划排产
 today : 2023-4-1
-NumberOfMaintenTrainsPerDay: 3
+# NumberOfMaintenTrainsPerDay: 3
+# 特殊工作包，不计入排产计划
 SpecialWorkPackage : 1601-01 1602-01 1603-01 1801-01 1802-01 1803-01 1804-01
+# 随机数种子
 seed : 1
+
+
+
+############################### 全寿命：排产维修计划参数
+# 周转件约束过修，单位：季度
+turnover_overtake_quarter: 0
+# 非周转件约束过修，单位：百分数（小数形式）
+wholelife_overtake_percentage: 0.10
+whole_alpha : 20
+
+############################### 年计划：排产维修计划参数
+year_overtake_percentage: 0.05
+year_alpha: 100
+
+############################### 月计划：排产维修计划参数
+month_alpha: 1
+# 日维修最大工时
+max_worktime_load: 240
+# 股道数量限制
+train_limit_cnt : 7
+
+track_limit_cnt : 6
+parking_limit_cnt : 24
+temp_track_limit_cnt : 2
+purge_line_limit_cnt : 1
+test_line_limit_cnt : 1
+car_wash_line_limit_cnt : 1
+temp_track_limit_cnt : 2
+
+
+
+

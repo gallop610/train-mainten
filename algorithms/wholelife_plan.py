@@ -9,20 +9,20 @@ import pdb
 import math
 
 def wholelife_plan(wholelife_workpackage, config):
-    """
-    Generate a whole life plan for a given set of work packages and configuration.
+    '''
+    全寿命计划算法
 
     Args:
-        all_workpackage (list): A list of WorkPackage objects.
-        config (dict): A dictionary containing configuration parameters.
+        wholelife_workpackage: 全寿命计划包含所有工作包的列表
+        config: 算法的配置信息
 
     Returns:
-        A list of ScheduledWorkPackage objects representing the whole life plan.
-    """
+        排班后的全寿命算法
+    '''
     
     # 初始化参数
     today = convert_str_to_date(config['today'])
-    alpha = float(config['alpha'])
+    alpha = float(config['whole_alpha'])
     current_quarter = convert_day_to_quarter(today)
     turnover_overtake_quarter = int(config['turnover_overtake_quarter'])
     wholelife_overtake_percentage = float(config['wholelife_overtake_percentage'])
@@ -30,9 +30,7 @@ def wholelife_plan(wholelife_workpackage, config):
     # 初始化季度负载工时,维修间隔
     sum_interval = 0
     quarter_list = gen_quarter_120(current_quarter)
-    quarter_worktime_load = {}
-    for quarter in quarter_list:
-        quarter_worktime_load[quarter] = 0
+    quarter_worktime_load = {index:0 for index in quarter_list}
     
     # # 筛选含有周转件约束的工作包和不含周转件约束的工作包
     turnover_package, not_turnover_package = _select_turnover_package(wholelife_workpackage)
@@ -67,14 +65,14 @@ def wholelife_plan(wholelife_workpackage, config):
         
         while compare_quarters(next_mainten_quarter, end_mainten_quarter) == 1:
             float_range_ub = interval_quarter*0.05
-            # 维修季度间隔大于0.85时，默认增加一个季度
+
             upper_bound = add_quarters(next_mainten_quarter, int(float_range_ub))
             if random.random()/4 < float_range_ub-int(float_range_ub):
                 upper_bound = add_quarters(upper_bound, 1)
             if compare_quarters(upper_bound, end_mainten_quarter) != 1:
                 upper_bound = add_quarters(end_mainten_quarter, -1)
                 
-            if not isinstance(work.Shared_Cooling_Work_Package_Number, str) and np.isnan(work.Shared_Cooling_Work_Package_Number):
+            if work.Shared_Cooling_Work_Package_Number == 'None':
                 float_range_lb = math.ceil(len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+turnover_overtake_quarter
             else:
                 float_range_lb = math.ceil(2*len(train_cnt[work.Online_Date])/int(90/work.Cooling_Time))+turnover_overtake_quarter
@@ -104,6 +102,7 @@ def wholelife_plan(wholelife_workpackage, config):
                     break
                 else:
                     range.remove(min_worktime_load_quarter)
+                    
             # 对应周转件约束数量减一，记录维修日期
             quarter_turnover_constraint[work.Work_Package_Number][next_mainten_quarter] -= 1
             work.mainten_quarter.append(next_mainten_quarter)
@@ -188,8 +187,8 @@ def _select_turnover_package(wholelife_workpackage):
         不需要周转件的工作包列表。
     """
     
-    turnover_package = [info for info in wholelife_workpackage if not np.isnan(info.Cooling_Time)]
-    not_turnover_package = [info for info in wholelife_workpackage if np.isnan(info.Cooling_Time)]
+    turnover_package = [info for info in wholelife_workpackage if info.Cooling_Time != 0]
+    not_turnover_package = [info for info in wholelife_workpackage if info.Cooling_Time == 0]
     return turnover_package, not_turnover_package
 
 def _count_num_trains_on_sametime(turnover_package):
@@ -222,7 +221,7 @@ def _quarter_turnover_constraint(turnover_package, quarter_list):
     """
     turnover_cd = {}
     for work in turnover_package:
-        if not isinstance(work.Shared_Cooling_Work_Package_Number,str) and np.isnan(work.Shared_Cooling_Work_Package_Number):
+        if work.Shared_Cooling_Work_Package_Number == 'None':
             turnover_quarter_constrain = {}
             for quarter in quarter_list:
                 turnover_quarter_constrain[quarter] = int(30/work.Cooling_Time)*3

@@ -3,6 +3,7 @@ import yaml
 import pandas as pd
 from collections import defaultdict
 from datetime import datetime
+import pdb
 
 def read_file_config(yaml_file_path) -> dict:
     '''
@@ -54,7 +55,7 @@ def read_WorkPackage(filename) -> list:
         # 提取股道ID作为键
         track_id = data[0]  
         # 剩下的元素是优先级数据
-        priority_data = data[1:]  
+        priority_data = data[1:]
         TrackPriority[track_id].add(priority_data)
     
     WorkPackage = list()
@@ -119,7 +120,19 @@ def read_Last_Mainten_Time(filename) -> list:
         else:
             Last_Mainten_Time[key] = materials
     return Last_Mainten_Time
-    
+
+def read_Train_Mainten_Range(filename) -> list:
+    df = pd.read_excel(filename, sheet_name='列车检修范围管理')
+    read_Train_Mainten_Range = []
+    for _, row in df.iterrows():
+        # 将行数据转换为元组
+        data = tuple(row)
+        # 提取前两个元素作为键
+        key = set(data[0:2])
+        # 剩下的元素是物资信息     
+        read_Train_Mainten_Range.append(key)
+        # pdb.set_trace()
+    return read_Train_Mainten_Range
     
         
     
@@ -128,4 +141,3 @@ if __name__ == "__main__":
     config_name = 'config.yaml'
     config = read_file_config(config_name)
     read_WorkPackage(os.path.join(config['file_path'], config['WorkPackageFilename']))
-    # print(config)

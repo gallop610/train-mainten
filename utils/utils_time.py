@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import calendar
 
 def convert_str_to_date(str_time):
     """
@@ -210,6 +211,30 @@ def compare_months(a, b):
         return 0
     else:
         return -1
+    
+def compare_days(a, b):
+    """
+    Compares two days and returns True if a < b, False otherwise.
+
+    Args:
+        a (str): A string representing a day in the format "YYYY-MM-DD".
+        b (str): A string representing a day in the format "YYYY-MM-DD".
+    
+    Returns:
+        int 1 if a < b, 0 if a==b, -1 if a > b
+    """
+    year_a, month_a, day_a = a.split('-')
+    year_b, month_b, day_b = b.split('-')
+    if year_a < year_b:
+        return 1
+    elif year_a == year_b and month_a < month_b:
+        return 1
+    elif year_a == year_b and month_a == month_b and day_a < day_b:
+        return 1
+    elif year_a == year_b and month_a == month_b and day_a == day_b:
+        return 0
+    else:
+        return -1
 
 
 # 两个季度之间的所有季度
@@ -286,3 +311,38 @@ def month_difference(start_month, end_month):
     difference = (end_year - start_year) * 12 + (end_m - start_m)
     return difference
 
+
+# 两个日期之间相差多少个日期
+def day_difference(start_day, end_day):
+    if compare_days(start_day, end_day) == -1:
+        start_day, end_day = end_day, start_day
+    start_day = convert_str_to_date(start_day)
+    end_day = convert_str_to_date(end_day)
+    difference = (end_day - start_day).days
+    return difference
+
+def gen_all_days_on_month(str_month):
+    """
+    生成一个月份的所有日期列表，从给定月份的首个日期开始，该月份的最后日期
+
+    参数：
+        str_month：str类型，表示开始的年份与月份，格式为"YYYY-MM"，其中YYYY表示年份，MM表示月份，如"2023-04"表示2023年第4个月
+    返回：
+        days：list类型，包含该月份所有日期的列表，每个日期的格式为"YYYY-MM-DD"，如["2023-04-01", "2023-04-02", "2023-04-03"]
+    """
+    year, month = str_month.split('-')
+    days = []
+    for day in range(calendar.monthrange(int(year), int(month))[1] + 1)[1:]:
+        days.append(f'{year}-{month}-%02d' % day)
+    return days
+
+# 两个日期之间的所有日期
+def gen_all_days(start_day, end_day):
+    days = []
+    start_day = convert_str_to_date(start_day)
+    end_day = convert_str_to_date(end_day)
+    while start_day <= end_day:
+        day_str = start_day.strftime("%Y-%m-%d")
+        days.append(day_str)
+        start_day += timedelta(days=1)
+    return days
