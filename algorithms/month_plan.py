@@ -52,9 +52,10 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                         if work.Train_Number not in day_worktime_load[next_mainten_date]:
                             day_worktime_load[next_mainten_date][work.Train_Number] = 0.0
                         day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
-                        next_mainten_date = next_mainten_date + relativedelta(days=8)
                         # 维修的列车数量
                         train_limit[next_mainten_date].add(work.Train_Number)
+                        next_mainten_date = next_mainten_date + relativedelta(days=8)
+                        
         cnt_index += 1
 
     # 处理16日工作包
@@ -75,9 +76,10 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                         if work.Train_Number not in day_worktime_load[next_mainten_date]:
                             day_worktime_load[next_mainten_date][work.Train_Number] = 0.0
                         day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
-                        next_mainten_date = next_mainten_date + relativedelta(days=16)
                         # 维修的列车数量
                         train_limit[next_mainten_date].add(work.Train_Number)
+                        next_mainten_date = next_mainten_date + relativedelta(days=16)
+
         cnt_index += 1
 
     # 处理30日工作包
@@ -99,9 +101,10 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                         if work.Train_Number not in day_worktime_load[next_mainten_date]:
                             day_worktime_load[next_mainten_date][work.Train_Number] = 0.0
                         day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
-                        next_mainten_date = next_mainten_date + relativedelta(days=30)
                         # 维修的列车数量
                         train_limit[next_mainten_date].add(work.Train_Number)
+                        next_mainten_date = next_mainten_date + relativedelta(days=30)
+
         cnt_index += 1
 
     for work in tqdm(year_plan_workpackage):
@@ -152,6 +155,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                     range_days = [info for info in range_days if info.day in result]
                 elif work.Cooling_Time == 25:
                     initial_number = random.randint(1, 28)
+                    result = [initial_number]
                     range_days = [info for info in range_days if info.day in result]
 
                 min_day_range = _select_less_day_turnover_worktime_load(day_worktime_load, range_days, next_mainten_date, alpha)
@@ -167,9 +171,6 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 if not flag_min_day:
                     print('无法找到合适的周转件，工作包编号为：', work.Work_Package_Number)
                     exit(-1)
-
-                if next_mainten_date < end_mainten_date:
-                    break
 
                 # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
                 turnover_limit[work.Work_Package_Number][next_mainten_date] = False
@@ -229,11 +230,11 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                     day_worktime_load[next_mainten_date][work.Train_Number] = 0.0
                 day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
                 train_limit[next_mainten_date].add(work.Train_Number)
-                
                 next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
 
     _draw(day_worktime_load, train_limit, days_index)
-    return year_plan_workpackage + month_plan_workpackage    
+    return year_plan_workpackage + month_plan_workpackage
+    # return year_plan_workpackage
 
 def _select_less_day_turnover_worktime_load(day_worktime_load, range_days, next_mainten_date, alpha):
     all = {}
