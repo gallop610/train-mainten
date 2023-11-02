@@ -346,3 +346,10 @@ def gen_all_days(start_day, end_day):
         days.append(day_str)
         start_day += timedelta(days=1)
     return days
+def gen_all_days_datetime(start_date, end_date):
+    current_date = start_date
+    date_list = []
+    while current_date <= end_date:
+        date_list.append(current_date)
+        current_date += relativedelta(days=1)
+    return date_list
