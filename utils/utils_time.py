@@ -236,7 +236,6 @@ def compare_days(a, b):
     else:
         return -1
 
-
 # 两个季度之间的所有季度
 def gen_all_quarters(start_quarter, end_quarter):
     quarters = []

@@ -49,5 +49,10 @@ car_wash_line_limit_cnt : 1
 temp_track_limit_cnt : 2
 
 
+############################### 周计划：排产维修计划参数
+
+############################### 周计划：排产维修计划参数
+number_of_local_adjustments : 1500
+
 
 

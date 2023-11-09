@@ -163,7 +163,9 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
 
                 # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
             turnover_limit[work.Work_Package_Number][next_mainten_date] = False
+            # 增加列车数量，检修道数量
             train_limit[next_mainten_date].add(work.Train_Number)
+            
             work.mainten_day.append(next_mainten_date)
             day_worktime_load[next_mainten_date]['all'] += work.Work_Package_Person_Day
             # 统计列车维修工时负载
@@ -245,9 +247,9 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 
             next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
 
-    _draw(day_worktime_load, train_limit, days_index)
-    exit(-1)
-    # return turnover_package + not_turnover_package + month_plan_workpackage
+    # _draw(day_worktime_load, train_limit, days_index)
+    # exit(-1)
+    return turnover_package + not_turnover_package + month_plan_workpackage
 
 def _select_less_day_turnover_worktime_load(day_worktime_load, range_days, next_mainten_date, alpha):
     all = {}
@@ -273,6 +275,9 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         min_day: str
             工时负载最小的日期。
     """
+    # 优先级更高
+    
+    
     all = {}
     for i in day_range:
         if day_worktime_load[i]['all'] > 200:
@@ -344,7 +349,7 @@ def _generate_month_days(month):
 def _draw(day_worktime_load, train_limit, index):
     t1 =[]
     t2 =[]
-    for info in sorted(index)[:366]:
+    for info in sorted(index)[:365]:
         t1.append(day_worktime_load[info]['all'])
         t2.append(len(train_limit[info]))
     plt.plot(t1, label='work time', color='r')
