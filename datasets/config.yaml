@@ -5,11 +5,11 @@
 # 数据集文件夹路径
 file_path : ./datasets
 # 工作包数据文件名
-WorkPackageFilename : WorkPackageData.xlsx
+WorkPackageFilename : 工作包数据V1.xlsx
 # 列车数据管理文件名
 TrainDataFilename : TrainData.xlsx
 # 上次维修数据管理文件名
-LastMaintenTimeFilename : 上次维修数据管理.xlsx
+LastMaintenTimeFilename : 上次维修数据管理V2.xlsx
 # 列车检修范围管理文件名
 TrainMaintenRangeFilename : 列车检修范围管理.xlsx
 # 从该日期之后计划排产

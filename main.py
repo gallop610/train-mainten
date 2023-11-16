@@ -153,9 +153,6 @@ def Month_Plan(config):
             workpackage.Online_Date = train.Online_Date
             ALL_workpackage.append(workpackage)
             
-
-    
-    
     work_package = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract != '委外']
     
     # 读取年计划表

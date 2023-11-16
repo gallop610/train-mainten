@@ -8,6 +8,7 @@ from dateutil.relativedelta import relativedelta
 import pdb
 import matplotlib.pyplot as plt
 import math
+from tqdm import tqdm
 
 def year_plan(year_workpackage, wholelife_workpackage, config):
     # 初始化参数
@@ -28,8 +29,8 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
 
         
     # 首先排产全寿命计划工作包
+    print('正在处理已有全寿命计划的工作包...')
     for work in wholelife_workpackage:
-        # print('1',work.Work_Package_Number)
         if work.Cooling_Time != 0:
             flag_tunover = True
         else:
@@ -99,8 +100,9 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
                 work.mainten_month.append(next_mainten_month)
                 month_worktime_load[next_mainten_month] += work.Work_Package_Person_Day
                 next_mainten_month = add_months(next_mainten_month, interval_month)
-        
-    for work in year_workpackage:
+    
+    print('正在处理年计划工作包...')
+    for work in tqdm(year_workpackage):
         work.mainten_month = []
         # 初始化基本信息
         start_mainten_month = convert_day_to_month(work.Online_Date)
@@ -166,12 +168,12 @@ def _month_turnover_constraint(workpackage, month_list):
                 turnover_month_constrain[month] = int(30/work.Cooling_Time)
             turnover_cd[work.Work_Package_Number] = turnover_month_constrain
         else:
-            if work.Work_Package_Number not in turnover_cd and work.Shared_Cooling_Work_Package_Number not in turnover_cd:
+            if work.Shared_Cooling_Work_Package_Number not in turnover_cd:
                 turnover_month_constrain = {}
                 for month in month_list:
                     turnover_month_constrain[month] = int(30/work.Cooling_Time)
-                turnover_cd[work.Work_Package_Number] = turnover_month_constrain
                 turnover_cd[work.Shared_Cooling_Work_Package_Number] = turnover_month_constrain
+            turnover_cd[work.Work_Package_Number] = turnover_cd[work.Shared_Cooling_Work_Package_Number]
     return turnover_cd
 
 def _select_turnover_package(wholelife_workpackage):

@@ -64,8 +64,6 @@ def draw_worktime_load(data, model):
     all = sorted(all.items(),key = lambda x:x[0], reverse=False)
     all = [info[1] for info in all][:366]
     
-    
-    
     plt.plot(all, label='all', color='r')
 
     # 添加标题和标签
@@ -80,15 +78,15 @@ def draw_worktime_load(data, model):
     
 
 if __name__ == '__main__':
-    file_path = './results/全寿命计划.xlsx'
-    r = read_excel_file(file_path)   
-    draw_worktime_load(r,'wholelife')
+    # file_path = './results/全寿命计划.xlsx'
+    # r = read_excel_file(file_path)   
+    # draw_worktime_load(r,'wholelife')
     
     file_path = './results/年计划.xlsx'
     r = read_excel_file(file_path)
     draw_worktime_load(r,'year')
     
-    file_path = './results/月计划.xlsx'
-    r1 = read_excel_file(file_path)
-    draw_worktime_load(r1,'Month')
-    draw_train_number(r1)
+    # file_path = './results/月计划.xlsx'
+    # r1 = read_excel_file(file_path)
+    # draw_worktime_load(r1,'Month')
+    # draw_train_number(r1)

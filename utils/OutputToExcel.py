@@ -19,7 +19,7 @@ def output_wholeLife_plan(workpackage):
                 last_mainten = work.mainten_quarter[j-1]
             tmp = [work.Train_Number,work.Work_Package_Number, work.Work_Package_Person_Day, int(work.Work_Package_Interval_Conversion_Value), work.Cooling_Time,date,last_mainten, quarter_difference(date,last_mainten), int(work.Work_Package_Interval_Conversion_Value/90)-quarter_difference(date,last_mainten)]
             
-            tmp.extend([tmp[8]*90/(int(tmp[3])), add_quarters(tmp[6],int(math.ceil(tmp[3]*1.05/90)))])
+            tmp.extend([(tmp[8]*90/(int(tmp[3]))), add_quarters(tmp[6],int(math.ceil(tmp[3]*1.05/90)))])
             mainten_quarter.append(tmp)
     
     wb = openpyxl.Workbook()

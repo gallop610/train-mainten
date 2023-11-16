@@ -44,7 +44,7 @@ def read_WorkPackage(filename) -> list:
         # 提取前两个元素作为键
         key = data[0:2]
         # 剩下的元素是物资信息     
-        materials = data[2:]  
+        materials = data[2:] 
         WorkPackageMaterials[key].add(materials)
 
     # 创建一个defaultdict来存储每条股道的优先级信息
@@ -59,7 +59,7 @@ def read_WorkPackage(filename) -> list:
         TrackPriority[track_id].add(priority_data)
     
     WorkPackage = list()
-    AttributeList = ['Train_Type', 'Work_Package_Number', 'Electrifiable', 'Powerless', 'Work_Package_Interval_Time_Dimension', 'Work_Package_Interval_Value', 'Work_Package_Interval_Conversion_Value', 
+    AttributeList = ['Train_Type', 'Work_Package_Number', 'Work_Package_Name','Electrifiable', 'Powerless', 'Work_Package_Interval_Time_Dimension', 'Work_Package_Interval_Value', 'Work_Package_Interval_Conversion_Value', 
                      'Work_Package_Person_Day', 'Work_Package_Person_Day_Unit_Price', 'Need_Trial_Run','Work_On_Non_Working_Day','Cooling_Time','Shared_Cooling_Work_Package_Number','Sampling_Times',
                      'Combined_Work_Package_Number','Need_High_Voltage_Verification','Work_Package_Contract','Undercarriage_Assembly','Material','Track_Type_Priority']
     # 遍历df1中的每一行数据
@@ -103,16 +103,19 @@ def read_TrainData(filename) -> list:
 
 def read_Last_Mainten_Time(filename) -> list:
     df = pd.read_excel(filename, sheet_name='上次维修数据管理')
+    # print(df)
     Last_Mainten_Time = defaultdict(set)
     for _, row in df.iterrows():
         # 将行数据转换为元组
+        row[4]  = row[4].replace('/','-')
         data = tuple(row)
         # 提取前两个元素作为键
         key = data[0:2]
         # 剩下的元素是物资信息     
-        materials = data[2:] 
+        materials = data[2:5]
         if key in Last_Mainten_Time:
-            # 比较日期，选择日期大的
+            # 比较日期，选择日期大
+            # print(materials)
             date1 = datetime.strptime(list(Last_Mainten_Time[key])[2], "%Y-%m-%d")
             date2 = datetime.strptime(materials[2], "%Y-%m-%d")
             if date2 > date1:
