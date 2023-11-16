@@ -412,7 +412,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
             # 如果next_mainten_date不满足股道约束，则将日期进行随机的前后调整，并且统计不满足约束的次数
             if not exist_track_satisfy:
                 choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date, force=True)
-                # track_exceed_num += 1
+                track_exceed_num += 1
 
             # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
             work.mainten_day.append(next_mainten_date)
@@ -615,6 +615,7 @@ def _select_turnover_package(wholelife_workpackage):
     return turnover_package, not_turnover_package,special_package
 
 def choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date, force=False):
+    return True
     # 周转件工作包如果出现股道限制超出的情况，强制分配股道，不顾约束，后面再调节其他工作包
     # 前提 股道优先级已按优先级顺序分配好
     if force == True:

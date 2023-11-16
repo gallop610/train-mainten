@@ -15,11 +15,16 @@ from tqdm import tqdm
 def adjust_worktime_load_balance(ALL_workpackage, config):
   # 绘图
   today = convert_str_to_date(config['today'])
-  end_date = today + relativedelta(days=365)
-  days_index = [today + relativedelta(days=i) for i in range(365)]
+  day_len = 2 
+  end_date = today + relativedelta(days=day_len*366)
+  days_index = [today + relativedelta(days=i) for i in range(day_len*366)]
   day_worktime_load = {index: 0.0 for index in days_index}
   day_plan = {index: set() for index in days_index}
   train_limit = {index: set() for index in days_index}
+  # 检修道数量限制
+  track_limit = {index:set() for index in days_index}
+    # 临修道数量限制
+  temp_track_limit = {index:set() for index in days_index}
 
   # 统计一年内的每天工时和维修计划
   cnt = 0
@@ -34,11 +39,35 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
       else:
         break
   print(f'一年内月计划工作共执行次数为{cnt}')
+  
+  for key,value in day_plan.items():
+    track = set()
+    for index in value:
+      track_type_priority = {track[0]: track[1] for track in ALL_workpackage[index].Track_Type_Priority}
+      if len(track_type_priority) == 1 :
+        if 'A' in track_type_priority:
+            track.add(('A',ALL_workpackage[index].Train_Number))
+        elif 'C' in track_type_priority:
+            track.add(('C',ALL_workpackage[index].Train_Number))
+      elif 'A' in track_type_priority and 'C' in track_type_priority:
+        track.add(('AC',ALL_workpackage[index].Train_Number))
+    for info in track:
+      if info[0] == 'A':
+        track_limit[key].add(info[1])
+      elif info[0] == 'C':
+        temp_track_limit[key].add(info[1])
+  
   t1_1 = []
   t1_2 = []
-  for info in sorted(days_index)[:365]:
+  t1_3 = []
+  t1_4 = []
+  t1_5 = []
+  for info in sorted(days_index)[:day_len*365]:
     t1_1.append(day_worktime_load[info])
     t1_2.append(len(train_limit[info]))
+    t1_3.append(len(track_limit[info]))
+    t1_4.append(len(temp_track_limit[info]))
+    t1_5.append(len(track_limit[info])+len(temp_track_limit[info]))
 
   # 首先处理工时较大的天数
   number_of_local_adjustments = int(config['number_of_local_adjustments'])
@@ -47,8 +76,8 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
   print('正在调整工时较大的天数...')
   for _ in tqdm(range(number_of_local_adjustments)):
     today = convert_str_to_date(config['today'])
-    end_date = today + relativedelta(days=365)
-    days_index = [today + relativedelta(days=i) for i in range(365)]
+    end_date = today + relativedelta(days=365*day_len)
+    days_index = [today + relativedelta(days=i) for i in range(day_len*365)]
     day_worktime_load = {index: 0 for index in days_index}
     day_plan = {index: set() for index in days_index}
     train_limit = {index: set() for index in days_index}
@@ -138,8 +167,8 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
 
   # 绘图
   today = convert_str_to_date(config['today'])
-  end_date = today + relativedelta(days=365)
-  days_index = [today + relativedelta(days=i) for i in range(365)]
+  end_date = today + relativedelta(days=day_len*365)
+  days_index = [today + relativedelta(days=i) for i in range(day_len*365)]
   day_worktime_load = {index: 0.0 for index in days_index}
   day_plan = {index: set() for index in days_index}
   train_limit = {index: set() for index in days_index}
@@ -154,11 +183,34 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
       else:
         break
 
+  for key,value in day_plan.items():
+    track = set()
+    for index in value:
+      track_type_priority = {track[0]: track[1] for track in ALL_workpackage[index].Track_Type_Priority}
+      if len(track_type_priority) == 1 :
+        if 'A' in track_type_priority:
+            track.add(('A',ALL_workpackage[index].Train_Number))
+        elif 'C' in track_type_priority:
+            track.add(('C',ALL_workpackage[index].Train_Number))
+      elif 'A' in track_type_priority and 'C' in track_type_priority:
+        track.add(('AC',ALL_workpackage[index].Train_Number))
+    for info in track:
+      if info[0] == 'A':
+        track_limit[key].add(info[1])
+      elif info[0] == 'C':
+        temp_track_limit[key].add(info[1])
+  
   t2_1 = []
   t2_2 = []
-  for info in sorted(days_index)[:365]:
+  t2_3 = []
+  t2_4 = []
+  t2_5 = []
+  for info in sorted(days_index)[:day_len*365]:
     t2_1.append(day_worktime_load[info])
     t2_2.append(len(train_limit[info]))
+    t2_3.append(len(track_limit[info]))
+    t2_4.append(len(temp_track_limit[info]))
+    t2_5.append(len(track_limit[info])+len(temp_track_limit[info]))
 
   plt.clf()
   plt.plot(t1_1, label='not adjust worktime', color='b')
@@ -181,6 +233,30 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
   plt.legend()
   plt.title(f'month_train_number_{number_of_local_adjustments}')
   plt.savefig(f'./results/month_train_number.png')
+  
+  plt.clf()
+  plt.plot(t1_3, label='Only A', color='b')
+  plt.plot(t1_4, label='Only C', color='r')
+  # plt.plot(t1_5, label=' A+C', color='g')
+  y_ticks = [1,2, 3, 4, 5, 6, 7, 14]
+  plt.yticks(y_ticks)
+  for y_val in y_ticks:
+    plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
+  plt.legend()
+  plt.title(f'track_noadjust_{number_of_local_adjustments}')
+  plt.savefig(f'./results/track_noadjust_{number_of_local_adjustments}.png')
+  
+  plt.clf()
+  plt.plot(t2_3, label='Only A', color='b')
+  plt.plot(t2_4, label='Only C', color='r')
+  # plt.plot(t2_5, label=' A+C', color='g')
+  y_ticks = [1,2, 3, 4, 5, 6, 7, 14]
+  plt.yticks(y_ticks)
+  for y_val in y_ticks:
+    plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
+  plt.legend()
+  plt.title(f'track_adjust_{number_of_local_adjustments}')
+  plt.savefig(f'./results/track_adjust_{number_of_local_adjustments}.png')
 
 
 def get_last_mainten_date(workpackage, this_mainten_date):
