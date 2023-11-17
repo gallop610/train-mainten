@@ -168,9 +168,9 @@ def Month_Plan(config):
         if info.Work_Package_Interval_Conversion_Value in [8, 16, 30]:
             month.append(info)
     result = month_plan(month, year, config)
-    adjust_worktime_load_balance(result, config)
+    result = adjust_worktime_load_balance(result, config)
     
-    # output_month_plan(result)
+    output_month_plan(result)
 
 if __name__ == '__main__':
     start_time = time.time()

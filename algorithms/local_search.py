@@ -15,7 +15,7 @@ from tqdm import tqdm
 def adjust_worktime_load_balance(ALL_workpackage, config):
   # 绘图
   today = convert_str_to_date(config['today'])
-  day_len = 2 
+  day_len = 1
   end_date = today + relativedelta(days=day_len*366)
   days_index = [today + relativedelta(days=i) for i in range(day_len*366)]
   day_worktime_load = {index: 0.0 for index in days_index}
@@ -23,7 +23,7 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
   train_limit = {index: set() for index in days_index}
   # 检修道数量限制
   track_limit = {index:set() for index in days_index}
-    # 临修道数量限制
+  # 临修道数量限制
   temp_track_limit = {index:set() for index in days_index}
 
   # 统计一年内的每天工时和维修计划
@@ -91,11 +91,12 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
       if work.Work_Package_Number in ['1505-01', '1505-02']:
         continue
       for indexx, day_date in enumerate(work.mainten_day):
-        # print(day_date, end_date)
         if day_date < end_date:
           day_worktime_load[day_date] += work.Work_Package_Person_Day
           day_plan[day_date].add(index)
           train_limit[day_date].add(work.Train_Number)
+          if work.Work_Package_Interval_Conversion_Value <= 16:
+            continue
           mainten_list.append((day_date, index, indexx))
         else:
           break
@@ -121,7 +122,7 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
       this_mainten_date = today
 
     # 确定这次维修的上下界
-    if 30 < interval_days <= 90:
+    if 16 < interval_days <= 90:
       upper_bound_1 = this_mainten_date + relativedelta(days=int(interval_days * 0.05))
       lower_bound_1 = this_mainten_date - relativedelta(days=int(interval_days * 0.05))
     else:
@@ -152,7 +153,7 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
     min_worktime = float('inf')
     min_day = -1
     for day_info in range_days:
-      if ALL_workpackage[max_work_id].Train_Number in train_limit[day_info] or len(train_limit[day_info]) < 6:
+      if ALL_workpackage[max_work_id].Train_Number in train_limit[day_info] or len(train_limit[day_info]) <= 5:
         if min_worktime >= day_worktime_load[day_info]:
           min_worktime = day_worktime_load[day_info]
           min_day = day_info
@@ -237,7 +238,7 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
   plt.clf()
   plt.plot(t1_3, label='Only A', color='b')
   plt.plot(t1_4, label='Only C', color='r')
-  # plt.plot(t1_5, label=' A+C', color='g')
+  # plt.scatter(t1_5, label=' A+C', color='g')
   y_ticks = [1,2, 3, 4, 5, 6, 7, 14]
   plt.yticks(y_ticks)
   for y_val in y_ticks:
@@ -249,7 +250,7 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
   plt.clf()
   plt.plot(t2_3, label='Only A', color='b')
   plt.plot(t2_4, label='Only C', color='r')
-  # plt.plot(t2_5, label=' A+C', color='g')
+  # plt.scatter(t2_5, label=' A+C', color='g')
   y_ticks = [1,2, 3, 4, 5, 6, 7, 14]
   plt.yticks(y_ticks)
   for y_val in y_ticks:
@@ -257,6 +258,8 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
   plt.legend()
   plt.title(f'track_adjust_{number_of_local_adjustments}')
   plt.savefig(f'./results/track_adjust_{number_of_local_adjustments}.png')
+  
+  return ALL_workpackage
 
 
 def get_last_mainten_date(workpackage, this_mainten_date):
@@ -285,7 +288,7 @@ def _draw(day_worktime_load, train_limit, index, str_name):
     t1.append(day_worktime_load[info])
     t2.append(len(train_limit[info]))
   plt.clf()
-  plt.plot(t1, label='work time', color='r')
+  plt.scatter(t1, label='work time', color='r')
   y_ticks = [20 * i for i in range(1, 13)]
   plt.yticks(y_ticks)
   for y_val in y_ticks:
@@ -293,7 +296,7 @@ def _draw(day_worktime_load, train_limit, index, str_name):
   plt.savefig(f'./results/{str_name}_month_worktime_load.png')
 
   plt.clf()
-  plt.plot(t2, label='train number', color='b')
+  plt.scatter(t2, label='train number', color='b')
   y_ticks = [2, 3, 4, 7, 14]
   plt.yticks(y_ticks)
   for y_val in y_ticks:

@@ -87,6 +87,8 @@ def output_month_plan(workpackage):
     mainten_day.sort(key=lambda x: (x[5], x[3], x[0], x[1],x[6],x[4]), reverse=False)
     print('正在写入月计划...')
     for data in tqdm(mainten_day):
+        if data[5] == '2024-04-01':
+            break
         ws.append(list(data))
     wb.remove(wb['Sheet'])
     folder_path = './results'
