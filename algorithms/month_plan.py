@@ -52,9 +52,6 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                     
                     # 将股道优先级按字典存储并根据优先级排序
                     track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-                    work.mainten_track_type = {index:set() for index in days_index}
-                    
-                    # next_mainten_date = today+ relativedelta(days=cnt_index) 
                     
                     next_mainten_date = work.last_mainten_time + relativedelta(days=8) 
                     while next_mainten_date <= end_mainten_date:
@@ -88,10 +85,9 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                     
                     # 将股道优先级按字典存储并根据优先级排序
                     track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-                    work.mainten_track_type = {index:set() for index in days_index}
                     
-                    next_mainten_date = today+ relativedelta(days=cnt_index) 
-                    # next_mainten_date = work.last_mainten_time + relativedelta(days=16) 
+                    # next_mainten_date = today+ relativedelta(days=cnt_index) 
+                    next_mainten_date = work.last_mainten_time + relativedelta(days=16) 
                     while next_mainten_date <= end_mainten_date:
                         work.mainten_day.append(next_mainten_date)
                         day_worktime_load[next_mainten_date]['all'] += work.Work_Package_Person_Day
@@ -124,10 +120,11 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                     
                     # 将股道优先级按字典存储并根据优先级排序
                     track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-                    work.mainten_track_type = {index:set() for index in days_index}
 
-                    next_mainten_date = today+ relativedelta(days=cnt_index) 
-                    # next_mainten_date = work.last_mainten_time + relativedelta(days=30) 
+                    # next_mainten_date = today+ relativedelta(days=cnt_index)
+                    next_mainten_date = work.last_mainten_time + relativedelta(days=30)
+                    if next_mainten_date < today:
+                        next_mainten_date = today
                     while next_mainten_date <= end_mainten_date:
                         work.mainten_day.append(next_mainten_date)
                         day_worktime_load[next_mainten_date]['all'] += work.Work_Package_Person_Day
@@ -167,7 +164,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
 
              # 将股道优先级按字典存储并根据优先级排序
             track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-            work.mainten_track_type = {index:set() for index in days_index}
+            # work.mainten_track_type = {index:set() for index in days_index}
 
             work.mainten_day = []
             start_mainten_date = work.Online_Date
@@ -267,7 +264,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         # 初始化基本信息
         # 股道优先级
         track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-        work.mainten_track_type = {index:set() for index in days_index}
+        # work.mainten_track_type = {index:set() for index in days_index}
 
         start_mainten_date = work.Online_Date
         end_mainten_date = start_mainten_date + relativedelta(days=366*30)
@@ -345,7 +342,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         # 初始化基本信息
         # 股道优先级
         track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-        work.mainten_track_type = {index:set() for index in days_index}
+        # work.mainten_track_type = {index:set() for index in days_index}
 
 
         start_mainten_date = work.Online_Date

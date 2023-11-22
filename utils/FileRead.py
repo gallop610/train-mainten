@@ -107,7 +107,9 @@ def read_Last_Mainten_Time(filename) -> list:
     Last_Mainten_Time = defaultdict(set)
     for _, row in df.iterrows():
         # 将行数据转换为元组
-        row[4]  = row[4].replace('/','-')
+        if isinstance(row.iloc[4], datetime):
+            row.iloc[4] = row.iloc[4].strftime("%Y-%m-%d")
+        row.iloc[4]  = row.iloc[4].replace('/','-')
         data = tuple(row)
         # 提取前两个元素作为键
         key = data[0:2]
@@ -115,7 +117,6 @@ def read_Last_Mainten_Time(filename) -> list:
         materials = data[2:5]
         if key in Last_Mainten_Time:
             # 比较日期，选择日期大
-            # print(materials)
             date1 = datetime.strptime(list(Last_Mainten_Time[key])[2], "%Y-%m-%d")
             date2 = datetime.strptime(materials[2], "%Y-%m-%d")
             if date2 > date1:
