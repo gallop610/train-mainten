@@ -10,13 +10,14 @@ import matplotlib.pyplot as plt
 import math
 import pandas as pd
 from tqdm import tqdm
-from algorithms.analyze import analyze_track
+from algorithms.analyze import analyze_track,draw_track
 
 
 def adjust_worktime_load_balance(ALL_workpackage, config):
-  analyze_track(ALL_workpackage, config)
+  analyze_track(ALL_workpackage, config,'not adjust')
+  draw_track(ALL_workpackage, config,'not adjust')
   # return ALL_workpackage
-  # exit(0)
+  exit(0)
   
   # 绘图
   today = convert_str_to_date(config['today'])
