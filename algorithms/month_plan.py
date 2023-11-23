@@ -632,17 +632,16 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         min_day: str
             工时负载最小的日期。
     """
-    train_number = work.Train_Number
-    all = {}
-    #判断工时是否大于某个值或者该天该车已被上锁，再判断是否在该天车辆限制内
-    for i in day_range:
-        if day_worktime_load[i]['all'] > 200 or train_lock[i][train_number]:
-            continue
+    start_day = day_range[0]
+    end_day = day_range[-1]
+    new_day_range = gen_all_days_datetime(max(start_day - relativedelta(days=3),current_day),end_day + relativedelta(days=3))
 
-        #股道限制
+
+    flag_track_avaliable = {index:True for index in new_day_range}
+    for i in day_range:
         if train_track_select[i][work.Train_Number] == "":
             if track_choose_limit(track_limit,i,track_priority_str) == False:
-                continue
+                flag_track_avaliable[i] = False
             else:
                 pass
         else:
@@ -657,12 +656,24 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
                             track_limit[old_track_select][i].remove(work.Train_Number) 
                             if track_choose_limit(track_limit,i,new_track_select)== False:
                                 track_limit[old_track_select][i].add(work.Train_Number) 
-                                continue
+                                flag_track_avaliable[i] = False
                         else:
                             if track_choose_limit(track_limit,i,new_track_select)== False:
-                                continue
+                                flag_track_avaliable[i] = False
                 else:
-                    continue      
+                    # 这边是允不允许进行股道切换，暂时不允许进行股道切换
+                    flag_track_avaliable = False     
+
+    train_number = work.Train_Number
+    all = {}
+    #判断工时是否大于某个值或者该天该车已被上锁，再判断是否在该天车辆限制内
+    for i in day_range:
+        if day_worktime_load[i]['all'] > 200 or train_lock[i][train_number]:
+            continue
+
+        #股道限制
+        if flag_track_avaliable[i] == False:
+            continue
 
         if train_number in train_limit[i]:
             all[i] = 1.5*day_worktime_load[i]['all'] + abs((i-next_mainten_date).days) * alpha
@@ -675,32 +686,9 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
     for i in day_range:
         if  day_worktime_load[i]['all'] > 180 or train_lock[i][train_number]:
             continue
-        if(track_choose_limit(track_limit,i,track_priority_str)== False):
-            continue 
-                #股道限制
-        if train_track_select[i][work.Train_Number] == "":
-            if track_choose_limit(track_limit,i,track_priority_str) == False:
-                continue
-            else:
-                pass
-        else:
-            new_track_select = inter_str(train_track_select[i][work.Train_Number],track_priority_str)
-            old_track_select = train_track_select[i][work.Train_Number]
-            if new_track_select == old_track_select or new_track_select not in ("A","C","AC"):
-                pass
-            else:
-                if new_track_select != "":
-                    if old_track_select in ("A","C","AC"):
-                        if work.Train_Number in track_limit[old_track_select][i]:
-                            track_limit[old_track_select][i].remove(work.Train_Number) 
-                            if track_choose_limit(track_limit,i,new_track_select)== False:
-                                track_limit[old_track_select][i].add(work.Train_Number) 
-                                continue
-                        else:
-                            if track_choose_limit(track_limit,i,new_track_select)== False:
-                                continue
-                else:
-                    continue      
+        
+        if flag_track_avaliable[i] == False:
+            continue
        
         if train_number not in train_limit[i] and len(train_limit[i])<7:
             all[i] = 1.5*day_worktime_load[i]['all'] + abs((i-next_mainten_date).days) * alpha
@@ -709,38 +697,16 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
     
     #上述条件不满足，则适当扩大range范围（可调整），并在该情况下通过权重决定选取哪天
     all = {}
-    start_day = day_range[0]
-    end_day = day_range[-1]
-    day_range = gen_all_days_datetime(max(start_day - relativedelta(days=3),current_day),end_day + relativedelta(days=3))
-    for i in day_range:
+  
+    for i in new_day_range:
         if work.Train_Number in train_limit[i]:
             flag_train_in_today = 1
         else:
             flag_train_in_today = -1
                 #股道限制
-        if train_track_select[i][work.Train_Number] == "":
-            if track_choose_limit(track_limit,i,track_priority_str) == False:
-                all[i] = 10000
-            else:
-                pass
-        else:
-            new_track_select = inter_str(train_track_select[i][work.Train_Number],track_priority_str)
-            old_track_select = train_track_select[i][work.Train_Number]
-            if new_track_select == old_track_select or new_track_select not in ("A","C","AC"):
-                pass
-            else:
-                if new_track_select != "":
-                    if old_track_select in ("A","C","AC"):
-                        if work.Train_Number in track_limit[old_track_select][i]:
-                            track_limit[old_track_select][i].remove(work.Train_Number) 
-                            if track_choose_limit(track_limit,i,new_track_select)== False:
-                                track_limit[old_track_select][i].add(work.Train_Number) 
-                                all[i] = 10000
-                        else:
-                            if track_choose_limit(track_limit,i,new_track_select)== False:
-                                all[i] = 10000
-                else:
-                    continue      
+        if flag_track_avaliable[i] == False:
+            all[i] = 10000
+
         if (len(train_limit[i]) >= 7 and flag_train_in_today == -1) or train_lock[i][train_number] \
             or track_choose_limit(track_limit,i,track_priority_str)== False:
             #10000没有特殊含义只是一个比较大的数

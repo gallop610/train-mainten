@@ -44,7 +44,7 @@ def analyze_track(ALL_workpackage, config, s_info):
     track_limit = dict(sorted(track_limit.items(), key=lambda x: x[0]))
     with open(f'./results/{s_info}_track_limit.txt', 'w') as f:
         for key, value in track_limit.items():
-            if len(value) > 3:
+            if len(value) > 4:
                 f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
     
     temp_track_limit = dict(sorted(temp_track_limit.items(), key=lambda x: x[0]))
