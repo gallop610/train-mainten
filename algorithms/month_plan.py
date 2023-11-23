@@ -203,8 +203,12 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
   # 后续该处代码还需要优化，给出一个通用解决方案
   turnover_start_day = defaultdict(set)
   for work in turnover_package:
-    key = (work.Work_Package_Number, work.Cooling_Time)
-    turnover_start_day[key] = 0
+    if work.Shared_Cooling_Work_Package_Number == 'None':
+      key = (work.Work_Package_Number, work.Cooling_Time)
+      turnover_start_day[key] = 0
+    else:
+      key = (work.Shared_Cooling_Work_Package_Number, work.Cooling_Time)
+      turnover_start_day[key] = 0
   # 平均分配每天的工作量
   cnt1 = 1
   cnt2 = 1
@@ -219,7 +223,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
       cnt2 += 1
       if cnt2 == 8:
         cnt2 = 1
-  print(turnover_start_day)
+  # print(turnover_start_day)
 
   print('正在处理周转件...')
   for work in tqdm(turnover_package):
@@ -242,21 +246,26 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
     # 如果下次维修的日期小于当前日期，说明已经欠修，需要将当前日期置为第一次维修
     if next_mainten_date < current_day:
       next_mainten_date = current_day
+      
+    if work.Shared_Cooling_Work_Package_Number == 'None':
+      initial_number = turnover_start_day[(work.Work_Package_Number, work.Cooling_Time)]
+    else:
+      initial_number = turnover_start_day[(work.Shared_Cooling_Work_Package_Number, work.Cooling_Time)]
+      
+      
     for month in work.mainten_month:
       range_days = _generate_month_days(month)
-      seed = work.Work_Package_Number
-      random.seed(seed)
 
       if work.Cooling_Time == 7:
-        initial_number = turnover_start_day[(work.Work_Package_Number, work.Cooling_Time)]
+        # initial_number = turnover_start_day[(work.Work_Package_Number, work.Cooling_Time)]
         result = [initial_number + i * 7 for i in range(4)]
         range_days = [info for info in range_days if info.day in result]
       elif work.Cooling_Time == 14:
-        initial_number = turnover_start_day[(work.Work_Package_Number, work.Cooling_Time)]
+        # initial_number = turnover_start_day[(work.Work_Package_Number, work.Cooling_Time)]
         result = [initial_number + i * 14 for i in range(2)]
         range_days = [info for info in range_days if info.day in result]
       elif work.Cooling_Time == 25:
-        initial_number = turnover_start_day[(work.Work_Package_Number, work.Cooling_Time)]
+        # initial_number = turnover_start_day[(work.Work_Package_Number, work.Cooling_Time)]
         result = [initial_number]
         range_days = [info for info in range_days if info.day in result]
 
