@@ -16,7 +16,7 @@ def read_file_config(yaml_file_path) -> dict:
         dict : 以字典的形式给出所有配置信息 
     '''
     # 读取 YAML file
-    with open(yaml_file_path, 'r') as yaml_file:
+    with open(yaml_file_path, 'r',encoding = "UTF-8") as yaml_file:
         yaml_data = yaml.safe_load(yaml_file)
     return yaml_data
 
