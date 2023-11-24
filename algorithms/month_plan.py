@@ -76,13 +76,13 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         train_limit[next_mainten_date].add(work.Train_Number)  # 维修的列车数量
 
         next_mainten_date = next_mainten_date + relativedelta(days=16)
-        
+
   for work in year_plan_workpackage:
     if work.Work_Package_Interval_Conversion_Value == 45:
       work.mainten_day = []
       start_mainten_date = work.Online_Date
       end_mainten_date = start_mainten_date + relativedelta(days=366 * 30)
-      interval_days =45
+      interval_days = 45
 
       next_mainten_date = work.last_mainten_time + relativedelta(days=45)
       while next_mainten_date <= end_mainten_date:
@@ -111,7 +111,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
         train_limit[next_mainten_date].add(work.Train_Number)  # 维修的列车数量
 
-        next_mainten_date = next_mainten_date + relativedelta(days=16)
+        next_mainten_date = next_mainten_date + relativedelta(days=45)
 
   # 处理30日工作包
   for work in month_plan_workpackage:
@@ -345,7 +345,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
   for work in tqdm(not_turnover_package):
     if work.Work_Package_Number == '0502-01':
       continue
-      
+
     work.mainten_day = []
     # 初始化基本信息
     # 股道优先级
@@ -361,12 +361,13 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
     interval_days = int(work.Work_Package_Interval_Conversion_Value)
 
     # 根据历史维修信息，计算下一次维修的日期
-    next_mainten_date = last_mainten_date + relativedelta(days=interval_days)
+    next_mainten_date = last_mainten_date + relativedelta(days=interval_days*1.05)
     # 如果下次维修的日期小于当前日期，说明已经欠修，需要将当前日期置为第一次维修
     if next_mainten_date < current_day:
       next_mainten_date = current_day
+    else:
+      next_mainten_date = last_mainten_date + relativedelta(days=interval_days)
 
-    # 由于0502-01包在年计划中会有一个月出现多次的情况，不符合实际，因此要过滤掉多余的月份
 
     for month in work.mainten_month:
       float_range_ub = interval_days * 0.05
