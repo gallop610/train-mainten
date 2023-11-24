@@ -70,8 +70,7 @@ def wholelife_plan(wholelife_workpackage, config):
       float_range_ub = interval_quarter * 0.05
 
       upper_bound = add_quarters(next_mainten_quarter, int(float_range_ub))
-      if random.random() / 4 < float_range_ub - int(float_range_ub):
-        upper_bound = add_quarters(upper_bound, 1)
+
       if compare_quarters(upper_bound, end_mainten_quarter) != 1:
         upper_bound = add_quarters(end_mainten_quarter, -1)
 
@@ -130,33 +129,30 @@ def wholelife_plan(wholelife_workpackage, config):
     interval_quarter = int(work.Work_Package_Interval_Conversion_Value / 90)
 
     # 根据历史维修信息，计算下一次维修的季度
-    next_mainten_quarter = add_quarters(last_mainten_quarter, interval_quarter)
+    next_mainten_quarter = add_quarters(last_mainten_quarter, int(work.Work_Package_Interval_Conversion_Value*1.05 / 90))
 
     # 如果下一次标准维修的季度小于当前季度，则将下一次维修季度设置为当前季度
     if compare_quarters(next_mainten_quarter, current_quarter) == 1:  # next_mainten_quarter < current_quarter
-      sum_interval += quarter_difference(next_mainten_quarter, current_quarter)
+      # sum_interval += quarter_difference(next_mainten_quarter, current_quarter)
       next_mainten_quarter = current_quarter
       work.mainten_quarter.append(next_mainten_quarter)
       # 季度维修工时负载
       quarter_worktime_load[next_mainten_quarter] += work.Work_Package_Person_Day
       # 更新下一次维修季度
       next_mainten_quarter = add_quarters(next_mainten_quarter, interval_quarter)
+    else:
+      next_mainten_quarter = add_quarters(last_mainten_quarter, int(work.Work_Package_Interval_Conversion_Value / 90))
 
     while compare_quarters(next_mainten_quarter, end_mainten_quarter) == 1:
       float_range_ub = interval_quarter * 0.05
       # 以一定的概率将下一次维修季度向后推迟一个季度，具体取决于维修间隔的季度
       upper_bound = add_quarters(next_mainten_quarter, int(float_range_ub))
-      if work.Work_Package_Interval_Conversion_Value >= 540:
-        if random.random() / 2 < float_range_ub - int(float_range_ub):
-          upper_bound = add_quarters(upper_bound, 1)
+
       if compare_quarters(upper_bound, end_mainten_quarter) != 1:
         upper_bound = add_quarters(end_mainten_quarter, -1)
 
       float_range_lb = interval_quarter * wholelife_overtake_percentage
       lower_bound = add_quarters(next_mainten_quarter, -int(float_range_lb))
-      if work.Work_Package_Interval_Conversion_Value >= 540:
-        if random.random() / 2 < float_range_lb - int(float_range_lb):
-          lower_bound = add_quarters(lower_bound, -1)
 
       if compare_quarters(lower_bound, current_quarter) == 1:
         lower_bound = current_quarter

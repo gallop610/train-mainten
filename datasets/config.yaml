@@ -34,6 +34,7 @@ year_overtake_percentage: 0.05
 year_alpha: 100
 
 ############################### 月计划：排产维修计划参数
+month_overtake_percentage: 0.05
 month_alpha: 1
 # 日维修最大工时
 max_worktime_load: 240
