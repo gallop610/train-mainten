@@ -12,6 +12,7 @@ import pandas as pd
 from tqdm import tqdm
 import os
 
+
 # 分析30年内的股道使用数量，以文字的形式输出
 def analyze_track(ALL_workpackage, config, s_info):
     # 绘图
@@ -30,7 +31,7 @@ def analyze_track(ALL_workpackage, config, s_info):
             track = ('AC', work.Train_Number)
         else:
             continue
-        
+
         for day_info in work.mainten_day:
             if track[0] == 'A':
                 if day_info not in track_limit:
@@ -40,13 +41,13 @@ def analyze_track(ALL_workpackage, config, s_info):
                 if day_info not in temp_track_limit:
                     temp_track_limit[day_info] = set()
                 temp_track_limit[day_info].add(track[1])
-                
+
     track_limit = dict(sorted(track_limit.items(), key=lambda x: x[0]))
     with open(f'./results/{s_info}_track_limit.txt', 'w') as f:
         for key, value in track_limit.items():
             if len(value) > 4:
                 f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
-    
+
     temp_track_limit = dict(sorted(temp_track_limit.items(), key=lambda x: x[0]))
     with open(f'./results/{s_info}_temp_track_limit.txt', 'w') as f:
         for key, value in temp_track_limit.items():
@@ -54,7 +55,7 @@ def analyze_track(ALL_workpackage, config, s_info):
                 f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
 
 
-# 绘制股道使用情况图，时间是1年或者2年 
+# 绘制股道使用情况图，时间是1年或者2年
 def draw_track(ALL_workpackage, config, s_info):
     today = convert_str_to_date(config['today'])
     day_len = 1
@@ -88,7 +89,7 @@ def draw_track(ALL_workpackage, config, s_info):
             track = ('AC', work.Train_Number)
         else:
             continue
-        
+
         for day_info in work.mainten_day:
             if day_info < end_date:
                 if track[0] == 'A':
@@ -109,7 +110,7 @@ def draw_track(ALL_workpackage, config, s_info):
         t3.append(len(track_limit[info]))
         t4.append(len(temp_track_limit[info]))
         t5.append(len(track_limit[info]) + len(temp_track_limit[info]))
-    
+
     plt.clf()
     plt.plot(t1, label=f'{s_info} worktime', color='b')
     y_ticks = [160, 180, 200, 220, 240]
@@ -141,6 +142,3 @@ def draw_track(ALL_workpackage, config, s_info):
     plt.legend()
     plt.title(f'{s_info}_track_number')
     plt.savefig(f'./results/{s_info}_track_number.png')
-
-
-    
