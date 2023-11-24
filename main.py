@@ -184,7 +184,7 @@ if __name__ == '__main__':
     random.seed(int(config['seed']))
     
     # Wholelife_Plan(config)
-    Year_Plan(config)
+    # Year_Plan(config)
     Month_Plan(config)
     
     end_time = time.time()

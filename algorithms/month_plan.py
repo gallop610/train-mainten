@@ -10,7 +10,6 @@ import pdb
 import matplotlib.pyplot as plt
 import math
 import pandas as pd
-import calendar
 from tqdm import tqdm
 
 
@@ -19,17 +18,16 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
   today = convert_str_to_date(config['today'])
   current_day = today
   days_index = [today + relativedelta(days=i) for i in range(366 * 30)]
-  month_overtake_percentage = float(config['month_overtake_percentage'])
+  month_overtake_percentage = float(config['year_overtake_percentage'])
   alpha = float(config['month_alpha'])
 
   sum_interval = 0
   # 初始化日期负载工时
   day_worktime_load = {index: {'all': 0.0} for index in days_index}
-
   # 维修列车数量限制
   train_limit = {index: set() for index in days_index}
   # 检修道数量限制
-  # track_limit = {index:set() for index in days_index}
+  track_limit = {index: set() for index in days_index}
   # 临修道数量限制
   temp_track_limit = {index: set() for index in days_index}
   # 统计下停车道
@@ -39,23 +37,12 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
   # 周转件数量限制
   turnover_limit = _day_turnover_package(year_plan_workpackage, days_index)
 
-  # 记录一下车辆在某天的股道分配
-  train_track_select = {index: {i: "" for i in range(1, 29)} for index in days_index}
-
-  #test,限制每天可以使用A股道，C股道，AC股道的数量
-
-  track_limit = {i: {index: set() for index in days_index} for i in ("A", "C", "AC")}
-
-  # 处理8日工作包
   for work in month_plan_workpackage:
     # 寻找维修间隔为8的工作包，开始直接排列
     if work.Work_Package_Interval_Conversion_Value == 8:
       work.mainten_day = []
       start_mainten_date = work.Online_Date
       end_mainten_date = start_mainten_date + relativedelta(days=366 * 30)
-
-      # 将股道优先级按字典存储并根据优先级排序
-      # track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
 
       next_mainten_date = work.last_mainten_time + relativedelta(days=8)
       while next_mainten_date <= end_mainten_date:
@@ -78,8 +65,6 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
       start_mainten_date = work.Online_Date
       end_mainten_date = start_mainten_date + relativedelta(days=366 * 30)
 
-      # 将股道优先级按字典存储并根据优先级排序
-      # track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
       next_mainten_date = work.last_mainten_time + relativedelta(days=16)
       while next_mainten_date <= end_mainten_date:
         work.mainten_day.append(next_mainten_date)
@@ -91,9 +76,44 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         train_limit[next_mainten_date].add(work.Train_Number)  # 维修的列车数量
 
         next_mainten_date = next_mainten_date + relativedelta(days=16)
+        
+  for work in year_plan_workpackage:
+    if work.Work_Package_Interval_Conversion_Value == 45:
+      work.mainten_day = []
+      start_mainten_date = work.Online_Date
+      end_mainten_date = start_mainten_date + relativedelta(days=366 * 30)
+      interval_days =45
+
+      next_mainten_date = work.last_mainten_time + relativedelta(days=45)
+      while next_mainten_date <= end_mainten_date:
+        float_range_ub = interval_days * 0.05
+        upper_bound = next_mainten_date + relativedelta(days=int(float_range_ub))
+        float_range_lb = interval_days * 0.05
+        lower_bound = next_mainten_date - relativedelta(days=int(float_range_lb))
+
+        # 判断上界和下界的日期会不会超出边界，满足调节则置为边界值
+        if upper_bound >= end_mainten_date:
+          upper_bound = end_mainten_date - relativedelta(days=1)
+
+        if lower_bound < current_day:
+          lower_bound = current_day
+        date_difference = (upper_bound - lower_bound).days
+        date_range = [lower_bound + relativedelta(days=i) for i in range(date_difference + 1)]
+        for date_info in date_range:
+          if work.Train_Number in train_limit[date_info]:
+            next_mainten_date = date_info
+            break
+        work.mainten_day.append(next_mainten_date)
+        day_worktime_load[next_mainten_date]['all'] += work.Work_Package_Person_Day
+        # 统计列车维修工时负载
+        if work.Train_Number not in day_worktime_load[next_mainten_date]:
+          day_worktime_load[next_mainten_date][work.Train_Number] = 0.0
+        day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
+        train_limit[next_mainten_date].add(work.Train_Number)  # 维修的列车数量
+
+        next_mainten_date = next_mainten_date + relativedelta(days=16)
 
   # 处理30日工作包
-  # 从30日包开始处理股道限制
   for work in month_plan_workpackage:
     # 寻找维修间隔为30的工作包，开始直接排列
     if work.Work_Package_Interval_Conversion_Value == 30:
@@ -103,7 +123,6 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
 
       # 将股道优先级按字典存储并根据优先级排序
       track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-      #work.mainten_track_type = {index:set() for index in days_index}
 
       next_mainten_date = work.last_mainten_time + relativedelta(days=30)
       if next_mainten_date < today:
@@ -117,32 +136,9 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
         train_limit[next_mainten_date].add(work.Train_Number)  # 维修的列车数量
 
-        # 根据优先级进行选择，股道约束
-        track_priority_str = track_select(track_type_priority)
-        if train_track_select[next_mainten_date][work.Train_Number] == "":
-          if (track_choose_limit(track_limit, next_mainten_date, track_priority_str) == False):
-            print("package Wrong,超出限制", work.Work_Package_Number)
-            exit(-1)
-          else:
-            if track_priority_str in ("A", "C", "AC"):
-              track_limit[track_priority_str][next_mainten_date].add(work.Train_Number)
-            train_track_select[next_mainten_date][work.Train_Number] = track_priority_str
-        else:
-          new_track_select = inter_str(train_track_select[next_mainten_date][work.Train_Number], track_priority_str)
-          old_track_select = train_track_select[next_mainten_date][work.Train_Number]
-          if new_track_select == old_track_select or new_track_select not in ("A", "C", "AC"):
-            pass
-          else:
-            if old_track_select in ("A", "C", "AC"):
-              track_limit[old_track_select][next_mainten_date].remove(work.Train_Number)
-              if track_choose_limit(track_limit, next_mainten_date, new_track_select) == False:
-                track_limit[old_track_select][next_mainten_date].add(work.Train_Number)
-                continue
-            track_limit[new_track_select][next_mainten_date].add(work.Train_Number)
-            train_track_select[next_mainten_date][work.Train_Number] = new_track_select
-
-        # exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date)
-        # assert exist_track_satisfy, 'All available tracks are allocated.'
+        # 根据优先级进行选择
+        exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date)
+        assert exist_track_satisfy, 'All available tracks are allocated.'
 
         next_mainten_date = next_mainten_date + relativedelta(days=30)
 
@@ -167,7 +163,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
 
       # 将股道优先级按字典存储并根据优先级排序
       track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-      #work.mainten_track_type = {index:set() for index in days_index}
+      # work.mainten_track_type = {index:set() for index in days_index}
 
       work.mainten_day = []
       start_mainten_date = work.Online_Date
@@ -196,7 +192,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         range_days = _generate_weekend_days(lower_bound, upper_bound)
         flag_min_day = False
 
-        next_mainten_date = _select_weekend_1505(work, range_days, train_limit, turnover_limit, next_mainten_date)
+        next_mainten_date = _select_weekend_1505(work, range_days, track_limit, turnover_limit, next_mainten_date)
         # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
         if next_mainten_date - relativedelta(days=7) >= current_day:
           turnover_limit[work.Work_Package_Number][next_mainten_date - relativedelta(days=7)] = False
@@ -215,31 +211,12 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         #day_worktime_load[next_mainten_date]['all'] += work.Work_Package_Person_Day
         train_lock[next_mainten_date][work.Train_Number] = True
 
-        #因为1505-01，1505-02仅使用C股道，又处理的比较早，所以股道直接分配就可以，不用考虑回溯
-        #股道约束
-        if (track_choose_limit(track_limit, next_mainten_date, track_type_priority) == False):
-          print("package Wrong,超出限制", work.Work_Package_Number)
-          exit(-1)
-        else:
-          track_priority_str = track_select(track_type_priority)
-          track_limit[track_priority_str][next_mainten_date].add(work.Train_Number)
-          train_track_select[next_mainten_date][work.Train_Number] = track_priority_str
         #周日处理
         week_end = next_mainten_date + relativedelta(days=1)
         train_limit[week_end].add(work.Train_Number)
-
-        #股道约束
-        if (track_choose_limit(track_limit, week_end, track_type_priority) == False):
-          print("package Wrong,超出限制", work.Work_Package_Number)
-          exit(-1)
-        else:
-          track_priority_str = track_select(track_type_priority)
-          track_limit[track_priority_str][week_end].add(work.Train_Number)
-          train_track_select[week_end][work.Train_Number] = track_priority_str
-
         # 根据优先级进行选择股道
-        # exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date + relativedelta(days=1))
-        # assert exist_track_satisfy, 'All available tracks are allocated.'
+        exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date + relativedelta(days=1))
+        assert exist_track_satisfy, 'All available tracks are allocated.'
 
         #不考虑这两个工作包的工时
         #day_worktime_load[week_end]['all'] += work.Work_Package_Person_Day
@@ -281,7 +258,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
       cnt2 += 1
       if cnt2 == 8:
         cnt2 = 1
-  print(turnover_start_day)
+  # print(turnover_start_day)
 
   print('正在处理周转件...')
   for work in tqdm(turnover_package):
@@ -289,8 +266,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
     # 初始化基本信息
     # 股道优先级
     track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-    #work.mainten_track_type = {index:set() for index in days_index}
-    track_priority_str = track_select(track_type_priority)
+    # work.mainten_track_type = {index:set() for index in days_index}
 
     start_mainten_date = work.Online_Date
     end_mainten_date = start_mainten_date + relativedelta(days=366 * 30)
@@ -327,123 +303,36 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         result = [initial_number]
         range_days = [info for info in range_days if info.day in result]
 
-      allow_day_change = monthlen(month) % work.Cooling_Time
-
       min_day_range = _select_less_day_turnover_worktime_load(day_worktime_load, range_days, next_mainten_date, alpha)
 
       flag_min_day = False
-      for i in range(0, int(allow_day_change) + 1):
-        for min_day in min_day_range:
-          # 判断周转件是否符合
-          if flag_min_day == True:
-            break
-          min_day += relativedelta(days=i)
-          if turnover_limit[work.Work_Package_Number][min_day] == False or train_lock[min_day][work.Train_Number] == True:
-            continue
-          #股道约束
-          if train_track_select[min_day][work.Train_Number] == "":
-            if (track_choose_limit(track_limit, min_day, track_priority_str) == False):
-              continue
-            else:
-              if track_priority_str in ("A", "C", "AC"):
-                track_limit[track_priority_str][min_day].add(work.Train_Number)
-              train_track_select[min_day][work.Train_Number] = track_priority_str
-          else:
-            new_track_select = inter_str(train_track_select[min_day][work.Train_Number], track_priority_str)
-            old_track_select = train_track_select[min_day][work.Train_Number]
-            if new_track_select == old_track_select or new_track_select not in ("A", "C", "AC"):
-              pass
-            else:
-              if new_track_select != "":
-                if old_track_select in ("A", "C", "AC"):
-                  track_limit[old_track_select][min_day].remove(work.Train_Number)
-                  if track_choose_limit(track_limit, min_day, track_priority_str) == False:
-                    track_limit[old_track_select][min_day].add(work.Train_Number)
-                    continue
-                track_limit[new_track_select][min_day].add(work.Train_Number)
-                train_track_select[min_day][work.Train_Number] = new_track_select
-              else:
-                continue
-                #暂时不考虑切换股道
-                track_limit[new_track_select][min_day].add(work.Train_Number)
+      for min_day in min_day_range:
+        # 判断周转件是否符合
+        if turnover_limit[work.Work_Package_Number][min_day] == False or train_lock == True:
+          continue
+        # if work.Train_Number not in train_limit[min_day] and len(train_limit[min_day]) >= 7:
+        #     continue
 
-          # if work.Train_Number not in train_limit[min_day] and len(train_limit[min_day]) >= 7:
-          #     continue
+        # 进行维修日期的股道选择
+        # exist_track_satisfy表示日期min_day是否满足股道约束，不满足约束则对日期进行调整，然后将股道冲突的数量加1
+        exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, min_day, force=False)
+        # 如果min_day不满足股道约束，也强制进行股道分配，统计超出的情况数量
+        if not exist_track_satisfy:
+          choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, min_day, force=True)
+          track_exceed_num += 1
 
-          # 进行维修日期的股道选择
-          # exist_track_satisfy表示日期min_day是否满足股道约束，不满足约束则对日期进行调整，然后将股道冲突的数量加1
-          # exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, min_day, force=False)
-          # 如果min_day不满足股道约束，也强制进行股道分配，统计超出的情况数量
-          # if not exist_track_satisfy:
-          #     choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, min_day, force=True)
-          #     track_exceed_num += 1
-          next_mainten_date = min_day
-          flag_min_day = True
-          break
-        for min_day in min_day_range:
-          # 判断周转件是否符合
-          if flag_min_day == True:
-            break
-          min_day -= relativedelta(days=i)
-          if turnover_limit[work.Work_Package_Number][min_day] == False or train_lock[min_day][work.Train_Number] == True:
-            continue
-          #股道约束
-          if train_track_select[min_day][work.Train_Number] == "":
-            if (track_choose_limit(track_limit, min_day, track_priority_str) == False):
-              continue
-            else:
-              if track_priority_str in ("A", "C", "AC"):
-                track_limit[track_priority_str][min_day].add(work.Train_Number)
-              train_track_select[min_day][work.Train_Number] = track_priority_str
-          else:
-            new_track_select = inter_str(train_track_select[min_day][work.Train_Number], track_priority_str)
-            old_track_select = train_track_select[min_day][work.Train_Number]
-            if new_track_select == old_track_select or new_track_select not in ("A", "C", "AC"):
-              pass
-            else:
-              if new_track_select != "":
-                if old_track_select in ("A", "C", "AC"):
-                  track_limit[old_track_select][min_day].remove(work.Train_Number)
-                  if track_choose_limit(track_limit, min_day, track_priority_str) == False:
-                    track_limit[old_track_select][min_day].add(work.Train_Number)
-                    continue
-                track_limit[new_track_select][min_day].add(work.Train_Number)
-                train_track_select[min_day][work.Train_Number] = new_track_select
-              else:
-                continue
-                #暂时不考虑切换股道
-                track_limit[new_track_select][min_day].add(work.Train_Number)
-
-          # if work.Train_Number not in train_limit[min_day] and len(train_limit[min_day]) >= 7:
-          #     continue
-
-          # 进行维修日期的股道选择
-          # exist_track_satisfy表示日期min_day是否满足股道约束，不满足约束则对日期进行调整，然后将股道冲突的数量加1
-          # exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, min_day, force=False)
-          # 如果min_day不满足股道约束，也强制进行股道分配，统计超出的情况数量
-          # if not exist_track_satisfy:
-          #     choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, min_day, force=True)
-          #     track_exceed_num += 1
-          next_mainten_date = min_day
-          flag_min_day = True
-          break
-        if flag_min_day == True:
-          break
-
+        next_mainten_date = min_day
+        flag_min_day = True
+        break
       if not flag_min_day:
-        print('无法找到合适的周转件，工作包编号为：', work.Work_Package_Number, work.Train_Number)
-        for min_day in min_day_range:
-          print(min_day, end='\n')
+        print('无法找到合适的周转件，工作包编号为：', work.Work_Package_Number)
         exit(-1)
+
       if next_mainten_date > end_mainten_date:
         break
 
         # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
-      # turnover_limit[work.Work_Package_Number][next_mainten_date] = False
-      for i in range(0, int(work.Cooling_Time)):
-        turnover_limit[work.Work_Package_Number][next_mainten_date + relativedelta(days=i)] = False
-        turnover_limit[work.Work_Package_Number][next_mainten_date - relativedelta(days=i)] = False
-
+      turnover_limit[work.Work_Package_Number][next_mainten_date] = False
       train_limit[next_mainten_date].add(work.Train_Number)
       work.mainten_day.append(next_mainten_date)
       day_worktime_load[next_mainten_date]['all'] += work.Work_Package_Person_Day
@@ -454,12 +343,14 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
       next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
   print('正在处理非周转件...')
   for work in tqdm(not_turnover_package):
+    if work.Work_Package_Number == '0502-01':
+      continue
+      
     work.mainten_day = []
     # 初始化基本信息
     # 股道优先级
     track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-    track_priority_str = track_select(track_type_priority)
-    #work.mainten_track_type = {index:set() for index in days_index}
+    # work.mainten_track_type = {index:set() for index in days_index}
 
     start_mainten_date = work.Online_Date
     end_mainten_date = start_mainten_date + relativedelta(days=366 * 30)
@@ -470,20 +361,13 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
     interval_days = int(work.Work_Package_Interval_Conversion_Value)
 
     # 根据历史维修信息，计算下一次维修的日期
-    next_mainten_date = last_mainten_date + relativedelta(days=interval_days * 1.05)
-    # 如果最大下次维修的日期小于当前日期，说明已经欠修，需要将当前日期置为第一次维修
+    next_mainten_date = last_mainten_date + relativedelta(days=interval_days)
+    # 如果下次维修的日期小于当前日期，说明已经欠修，需要将当前日期置为第一次维修
     if next_mainten_date < current_day:
       next_mainten_date = current_day
-    else:
-      next_mainten_date = last_mainten_date + relativedelta(days=interval_days)
 
     # 由于0502-01包在年计划中会有一个月出现多次的情况，不符合实际，因此要过滤掉多余的月份
-    if work.Work_Package_Number == '0502-01':
-      mainten_month = []
-      for month in work.mainten_month:
-        if month not in mainten_month:
-          mainten_month.append(month)
-      work.mainten_month = mainten_month
+
     for month in work.mainten_month:
       float_range_ub = interval_days * 0.05
       upper_bound = next_mainten_date + relativedelta(days=int(float_range_ub))
@@ -519,36 +403,19 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         elif lower_bound > range_days[-1]:
           range_days = range_days[-10:]
 
-      min_day = _select_less_day_worktime_load(work, day_worktime_load, range_days, next_mainten_date, alpha,\
-                                                train_limit,current_day,train_lock,track_limit,track_priority_str,train_track_select)
+      min_day = _select_less_day_worktime_load(work, day_worktime_load, range_days, next_mainten_date, alpha, train_limit, current_day, train_lock)
       sum_interval += (min_day - next_mainten_date).days
       next_mainten_date = min_day
-
-      #股道处理，这边默认在挑选min_day的时候已经排除了不满足股道约束的天
-      if train_track_select[next_mainten_date][work.Train_Number] == "":
-        if track_priority_str in ("A", "C", "AC"):
-          track_limit[track_priority_str][min_day].add(work.Train_Number)
-        train_track_select[min_day][work.Train_Number] = track_priority_str
-      else:
-        new_track_select = inter_str(train_track_select[next_mainten_date][work.Train_Number], track_priority_str)
-        old_track_select = train_track_select[next_mainten_date][work.Train_Number]
-        if new_track_select == old_track_select or new_track_select not in ("A", "C", "AC"):
-          train_track_select[next_mainten_date][work.Train_Number] = new_track_select
-          pass  #此处存疑，考虑是否要更新train_track_select
-        else:
-          if new_track_select != "":
-            track_limit[new_track_select][next_mainten_date].add(work.Train_Number)
-            train_track_select[next_mainten_date][work.Train_Number] = new_track_select
 
       #此处的处理尚有问题，建议在选择最小日期的时候就应该考虑到股道约束
 
       # 进行维修日期的股道选择
       # exist_track_satisfy表示日期next_mainten_date是否满足股道约束
-      # exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date, force=False)
+      exist_track_satisfy = choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date, force=False)
       # 如果next_mainten_date不满足股道约束，则将日期进行随机的前后调整，并且统计不满足约束的次数
-      # if not exist_track_satisfy:
-      #     choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date, force=True)
-      #     track_exceed_num += 1
+      if not exist_track_satisfy:
+        choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date, force=True)
+        track_exceed_num += 1
 
       # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
       work.mainten_day.append(next_mainten_date)
@@ -563,23 +430,19 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
 
 
 #   _draw(day_worktime_load, train_limit, days_index)
-#print(track_exceed_num)
-  result = turnover_package + not_turnover_package + special_package + month_plan_workpackage
-
-  return result
+  return turnover_package + not_turnover_package + special_package + month_plan_workpackage
 
 
 def _select_less_day_turnover_worktime_load(day_worktime_load, range_days, next_mainten_date, alpha):
   all = {}
 
   for i in range_days:
-    # all[i] = day_worktime_load[i]['all'] + abs((i-next_mainten_date).days) * alpha
-    all[i] = i
+    all[i] = day_worktime_load[i]['all'] + abs((i - next_mainten_date).days) * alpha
 
   return [k for k, v in sorted(all.items(), key=lambda item: item[1])]
 
 
-def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_mainten_date, alpha, train_limit, current_day, train_lock, track_limit, track_priority_str, train_track_select):
+def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_mainten_date, alpha, train_limit, current_day, train_lock):
   """
     从日期负载工时中选择最小的日期。
     
@@ -594,48 +457,12 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         min_day: str
             工时负载最小的日期。
     """
-  start_day = day_range[0]
-  end_day = day_range[-1]
-  #   new_day_range = gen_all_days_datetime(max(start_day - relativedelta(days=3), current_day), end_day + relativedelta(days=3))
-
-  flag_track_avaliable = {index: True for index in day_range}
-  for i in day_range:
-    if train_track_select[i][work.Train_Number] == "":
-      if track_choose_limit(track_limit, i, track_priority_str) == False:
-        flag_track_avaliable[i] = False
-      else:
-        pass
-    else:
-      new_track_select = inter_str(train_track_select[i][work.Train_Number], track_priority_str)
-      old_track_select = train_track_select[i][work.Train_Number]
-      if new_track_select == old_track_select or new_track_select not in ("A", "C", "AC"):
-        pass
-      else:
-        if new_track_select != "":
-          if old_track_select in ("A", "C", "AC"):
-            if work.Train_Number in track_limit[old_track_select][i]:
-              track_limit[old_track_select][i].remove(work.Train_Number)
-              if track_choose_limit(track_limit, i, new_track_select) == False:
-                track_limit[old_track_select][i].add(work.Train_Number)
-                flag_track_avaliable[i] = False
-            else:
-              if track_choose_limit(track_limit, i, new_track_select) == False:
-                flag_track_avaliable[i] = False
-        else:
-          # 这边是允不允许进行股道切换，暂时不允许进行股道切换
-          flag_track_avaliable = False
-
   train_number = work.Train_Number
   all = {}
   #判断工时是否大于某个值或者该天该车已被上锁，再判断是否在该天车辆限制内
   for i in day_range:
     if day_worktime_load[i]['all'] > 200 or train_lock[i][train_number]:
       continue
-
-    #股道限制
-    if flag_track_avaliable[i] == False:
-      continue
-
     if train_number in train_limit[i]:
       all[i] = 1.5 * day_worktime_load[i]['all'] + abs((i - next_mainten_date).days) * alpha
 
@@ -647,10 +474,6 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
   for i in day_range:
     if day_worktime_load[i]['all'] > 180 or train_lock[i][train_number]:
       continue
-
-    if flag_track_avaliable[i] == False:
-      continue
-
     if train_number not in train_limit[i] and len(train_limit[i]) < 7:
       all[i] = 1.5 * day_worktime_load[i]['all'] + abs((i - next_mainten_date).days) * alpha
   if all != {}:
@@ -658,18 +481,16 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
 
   #上述条件不满足，则适当扩大range范围（可调整），并在该情况下通过权重决定选取哪天
   all = {}
-
+  start_day = day_range[0]
+  end_day = day_range[-1]
+  # day_range = gen_all_days_datetime(max(start_day - relativedelta(days=3), current_day), end_day + relativedelta(days=3))
   for i in day_range:
     if work.Train_Number in train_limit[i]:
       flag_train_in_today = 1
     else:
       flag_train_in_today = -1
-      #股道限制
-    if flag_track_avaliable[i] == False:
-      all[i] = 10000
 
-    if (len(train_limit[i]) >= 7 and flag_train_in_today == -1) or train_lock[i][train_number] \
-        or track_choose_limit(track_limit,i,track_priority_str)== False:
+    if (len(train_limit[i]) >= 7 and flag_train_in_today == -1) or train_lock[i][train_number]:
       #10000没有特殊含义只是一个比较大的数
       all[i] = day_worktime_load[i]['all'] + abs((i - next_mainten_date).days) * alpha + len(train_limit[i]) * 10000
     else:
@@ -804,38 +625,6 @@ def _select_turnover_package(wholelife_workpackage):
   return turnover_package, not_turnover_package, special_package
 
 
-def track_select(track_type_priority):
-  result = ""
-  for track_type, track_priority in track_type_priority.items():
-    if track_type == 'A':
-      result += track_type
-    if track_type == 'C':
-      result += track_type
-    if track_type == "B":
-      result += "B"
-  if result == "CA":
-    result = "AC"
-  return result
-
-
-def track_choose_limit(track_limit, next_mainten_day, track_priority_str):
-  if track_priority_str == "A":
-    if len(track_limit["A"][next_mainten_day]) + len(track_limit["C"][next_mainten_day]) + len(track_limit["AC"][next_mainten_day]) + 1 > 5:
-      return False
-    if len(track_limit["A"][next_mainten_day]) + 1 > 4:
-      return False
-  elif track_priority_str == "C":
-    if len(track_limit["C"][next_mainten_day]) + 1 > 2:
-      return False
-    if len(track_limit["A"][next_mainten_day]) + len(track_limit["C"][next_mainten_day]) + len(track_limit["AC"][next_mainten_day]) + 1 > 5:
-      return False
-  elif track_priority_str == "AC":
-    if len(track_limit["A"][next_mainten_day]) + len(track_limit["C"][next_mainten_day]) + len(track_limit["AC"][next_mainten_day]) + 1 > 5:
-      return False
-
-  return True
-
-
 def choose_track(work, track_type_priority, track_limit, park_track_limit, temp_track_limit, next_mainten_date, force=False):
   return True
   # 周转件工作包如果出现股道限制超出的情况，强制分配股道，不顾约束，后面再调节其他工作包
@@ -896,15 +685,3 @@ def choose_track(work, track_type_priority, track_limit, park_track_limit, temp_
       break
 
   return exist_track_satisfy
-
-
-def inter_str(str1, str2):
-  str1 = set(str1)
-  str2 = set(str2)
-  str = str1.intersection(str2)
-  return "".join(str)
-
-
-def monthlen(str_date):
-  year, month = str_date.split('-')
-  return calendar.monthrange(int(year), int(month))[1]
