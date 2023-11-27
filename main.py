@@ -64,10 +64,10 @@ def _read_exist_plan(file_path):
     data = df.values.tolist()
     exist_plan = {}
     for info in data:
-        key = tuple([info[0],info[1]])
+        key = tuple([info[0],info[1],info[2]])
         if key not in exist_plan:
             exist_plan[key] = []
-        exist_plan[key].append(info[5])
+        exist_plan[key].append(info[20])
     return exist_plan
     
     
@@ -111,7 +111,7 @@ def Year_Plan(config):
     wholelife = []
     year = []
     for info in work_package:
-        key = tuple([info.Train_Number,info.Work_Package_Number])
+        key = tuple([info.Train_Type,info.Train_Number,info.Work_Package_Number])
         if key in wholelife_plan:
             info.mainten_quarter = wholelife_plan[key]
             wholelife.append(info)
@@ -161,7 +161,7 @@ def Month_Plan(config):
     month = []
     print('正在将现有的年计划分配至工作包...')
     for info in tqdm(work_package):
-        key = tuple([info.Train_Number,info.Work_Package_Number])
+        key = tuple([info.Train_Type,info.Train_Number,info.Work_Package_Number])
         if key in year_plan:
             info.mainten_month = year_plan[key]
             year.append(info)

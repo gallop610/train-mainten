@@ -20,6 +20,8 @@ class WorkPackage(object):
         self.Train_Number:int = None
         # 工作包编号, string
         self.Work_Package_Number:str = work_package_data['Work_Package_Number']
+        # 工作包名称,string
+        self.Work_Package_Name:str = work_package_data['Work_Package_Name']
         # 是否可以通电工作, bool
         self.Electrifiable:bool = work_package_data['Electrifiable']
         # 是否可以断电工作, bool

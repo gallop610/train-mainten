@@ -86,9 +86,9 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
 
             next_mainten_date = work.last_mainten_time + relativedelta(days=45)
             while next_mainten_date <= end_mainten_date:
-                float_range_ub = interval_days * 0.05
+                float_range_ub = 3
                 upper_bound = next_mainten_date + relativedelta(days=int(float_range_ub))
-                float_range_lb = interval_days * 0.05
+                float_range_lb = 4
                 lower_bound = next_mainten_date - relativedelta(days=int(float_range_lb))
 
                 # 判断上界和下界的日期会不会超出边界，满足调节则置为边界值
