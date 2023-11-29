@@ -464,7 +464,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         # pdb.set_trace()
         if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
             continue
-        if work.Train_Number in track_limit[track_type_priority][info] and day_worktime_load[info]['all'] < 200:
+        if work.Train_Number in track_limit[track_type_priority][info] and day_worktime_load[info]['all'] < 160:
             all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
             
     if all != {}:
@@ -484,7 +484,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
             continue
         elif track_type_priority == 'C' and work.Train_Number in track_limit['A'][info]:
             continue
-        elif day_worktime_load[info]['all'] > 200:
+        elif day_worktime_load[info]['all'] > 160:
             continue
         if (track_type_priority =='A' or track_type_priority =='C') and len(track_limit[track_type_priority][info]) < track_limit_number[track_type_priority]:
             all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
@@ -500,7 +500,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
     for info in tmp_day_range:
         if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
             continue
-        if day_worktime_load[info]['all'] > 220:
+        if day_worktime_load[info]['all'] > 160:
             continue
         elif train_lock[info][work.Train_Number] == True:
             continue
