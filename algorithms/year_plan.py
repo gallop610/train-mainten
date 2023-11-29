@@ -54,8 +54,8 @@ def year_plan(year_workpackage, wholelife_workpackage, config):
             upper_bound = add_months(next_mainten_month, int(float_range_ub))
 
             float_range_lb = interval_month * wholelife_overtake_percentage
-            # 以一定的概率将下一次维修月份向前推迟一个季度，具体取决于维修间隔的月份
             lower_bound = add_months(next_mainten_month, -int(float_range_lb))
+            
             if compare_months(lower_bound, current_month) != -1:
                 lower_bound = current_month
 
