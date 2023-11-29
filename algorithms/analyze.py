@@ -73,7 +73,8 @@ def draw_track(ALL_workpackage, config, s_info):
     for work in ALL_workpackage:
         for day_date in work.mainten_day:
             if day_date < end_date:
-                day_worktime_load[day_date] += work.Work_Package_Person_Day
+                if work.Work_Package_Number != '1505-01':
+                    day_worktime_load[day_date] += work.Work_Package_Person_Day
                 train_limit[day_date].add(work.Train_Number)
             else:
                 break

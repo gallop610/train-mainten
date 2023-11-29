@@ -322,6 +322,8 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
             day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
             next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
             
+    not_turnover_package.sort(key=lambda x: x.Work_Package_Interval_Conversion_Value, reverse=False)        
+    
     for work in tqdm(not_turnover_package, desc="处理非周转件"):
         if work.Work_Package_Number == '0502-01':
             continue
@@ -460,6 +462,8 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
     all = {}
     for info in day_range:
         # pdb.set_trace()
+        if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
+            continue
         if work.Train_Number in track_limit[track_type_priority][info] and day_worktime_load[info]['all'] < 200:
             all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
             
@@ -470,6 +474,8 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
     all = {}
     for info in day_range:
         # 尽量不去股道切换
+        if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
+            continue
         if track_type_priority == 'B' and (work.Train_Number in track_limit['A'][info] or work.Train_Number in track_limit['C'][info] or work.Train_Number in track_limit['AC'][info]):
             continue
         elif (track_type_priority == 'A' or track_type_priority=='C' or track_type_priority=='AC') and (work.Train_Number in track_limit['B'][info]):
@@ -492,7 +498,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
     
     all = {}
     for info in tmp_day_range:
-        if len(train_limit[info]) > 7:
+        if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
             continue
         if day_worktime_load[info]['all'] > 220:
             continue
