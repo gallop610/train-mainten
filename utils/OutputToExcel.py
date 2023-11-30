@@ -12,6 +12,8 @@ def output_wholeLife_plan(workpackage):
     mainten_quarter = []
     for i in range(len(workpackage)):
         work = workpackage[i]
+        first_elements = [item[0] for item in work.Track_Type_Priority]
+        track_type = ','.join(first_elements)
         for j in range(len(work.mainten_quarter)):
             date = work.mainten_quarter[j]
             if j == 0:
@@ -26,12 +28,12 @@ def output_wholeLife_plan(workpackage):
             red_line_over_date = add_quarters(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*0.90/90)))
             # 红线欠修
             red_line_repair_date = add_quarters(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*1.05/90)))
-            track_type = ''
             tmp = [work.Train_Type,work.Train_Number,work.Work_Package_Number,work.Work_Package_Name,work.Electrifiable,work.Powerless,work.Work_Package_Interval_Time_Dimension,
                    work.Work_Package_Interval_Value,work.Work_Package_Interval_Conversion_Value,work.Work_Package_Person_Day,work.Work_Package_Person_Day_Unit_Price,work.Need_Trial_Run,
                    work.Work_On_Non_Working_Day,work.Cooling_Time,work.Shared_Cooling_Work_Package_Number,work.Sampling_Times,work.Combined_Work_Package_Number,work.Need_High_Voltage_Verification,
                    work.Work_Package_Contract,work.Undercarriage_Assembly,date,last_mainten,interval_quarter,over_under_repaired,over_under_repaired_percentage,red_line_over_date,red_line_repair_date,track_type]
             mainten_quarter.append(tmp)
+            
     
     mainten_quarter.sort(key=lambda x: (x[20], x[8], x[1], x[2],x[21],x[13]), reverse=False)
     columns_name = ['列车类型','列车编号','工作包编号','工作包名称','是否可以通电工作','是否可以断电工作','工作包间隔时间维度','工作包间隔值','工作包间隔转换值', '工作包人天', '工作包人天单价',
@@ -64,6 +66,8 @@ def output_year_plan(workpackage):
     mainten_month = []
     for i in range(len(workpackage)):
         work = workpackage[i]
+        first_elements = [item[0] for item in work.Track_Type_Priority]
+        track_type = ','.join(first_elements)
         for j in range(len(work.mainten_month)):
             date = work.mainten_month[j]
             if j == 0:
@@ -80,8 +84,7 @@ def output_year_plan(workpackage):
             else:
                 red_line_over_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*0.95/30)))
             # 红线欠修
-            red_line_repair_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*1.05/90)))
-            track_type = ''                
+            red_line_repair_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*1.05/90)))             
                 
             tmp = [work.Train_Type,work.Train_Number,work.Work_Package_Number,work.Work_Package_Name,work.Electrifiable,work.Powerless,work.Work_Package_Interval_Time_Dimension,
                    work.Work_Package_Interval_Value,work.Work_Package_Interval_Conversion_Value,work.Work_Package_Person_Day,work.Work_Package_Person_Day_Unit_Price,work.Need_Trial_Run,
@@ -120,6 +123,8 @@ def output_month_plan(workpackage):
     mainten_day = []
     for i in range(len(workpackage)):
         work = workpackage[i]
+        first_elements = [item[0] for item in work.Track_Type_Priority]
+        track_type = ','.join(first_elements)
         for j in range(len(work.mainten_day)):
             date = work.mainten_day[j]
             if j == 0:
@@ -136,8 +141,7 @@ def output_month_plan(workpackage):
             else:
                 red_line_over_date = last_mainten + relativedelta(days=int(work.Work_Package_Interval_Conversion_Value*0.95))
             # 红线欠修
-            red_line_repair_date = last_mainten + relativedelta(days=int(work.Work_Package_Interval_Conversion_Value*1.05))
-            track_type = ''                
+            red_line_repair_date = last_mainten + relativedelta(days=int(work.Work_Package_Interval_Conversion_Value*1.05))          
                 
             tmp = [work.Train_Type,work.Train_Number,work.Work_Package_Number,work.Work_Package_Name,work.Electrifiable,work.Powerless,work.Work_Package_Interval_Time_Dimension,
                    work.Work_Package_Interval_Value,work.Work_Package_Interval_Conversion_Value,work.Work_Package_Person_Day,work.Work_Package_Person_Day_Unit_Price,work.Need_Trial_Run,

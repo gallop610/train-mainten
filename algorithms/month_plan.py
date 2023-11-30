@@ -35,7 +35,6 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
     # 周转件数量限制
     turnover_limit = _day_turnover_package(year_plan_workpackage, days_index)
 
-    print( turnover_limit['1505-01'][datetime(2024, 10, 26, 0, 0)])
 
     for work in month_plan_workpackage:
         # 寻找维修间隔为8的工作包，开始直接排列
@@ -246,16 +245,17 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         work.mainten_day = []
         # 初始化基本信息
         # 确定这辆列车可以维修的轨道
-        if len(work.Track_Type_Priority) == 1 and 'A' in work.Track_Type_Priority:
-            track_type_priority = 'A'
-        elif len(work.Track_Type_Priority) == 1 and 'B' in work.Track_Type_Priority:
-            track_type_priority = 'B'
-        elif len(work.Track_Type_Priority) == 1 and 'C' in work.Track_Type_Priority:
-            track_type_priority = 'C'
-        elif 'A' in work.Track_Type_Priority and 'C' in work.Track_Type_Priority:
-            track_type_priority = 'AC'
+        track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
+        if len(work.Track_Type_Priority) == 1 and 'A' in track_type_priority:
+            track_type = 'A'
+        elif len(work.Track_Type_Priority) == 1 and 'B' in track_type_priority:
+            track_type = 'B'
+        elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
+            track_type = 'C'
+        elif 'A' in work.Track_Type_Priority and 'C' in track_type_priority:
+            track_type = 'AC'
         else:
-            track_type_priority = 'A'
+            track_type = 'A'
         
 
         start_mainten_date = work.Online_Date
@@ -313,7 +313,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
             # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
             turnover_limit[work.Work_Package_Number][next_mainten_date] = False
             train_limit[next_mainten_date].add(work.Train_Number)
-            track_limit[track_type_priority][next_mainten_date].add(work.Train_Number)  # 维修的列车的股道
+            track_limit[track_type][next_mainten_date].add(work.Train_Number)  # 维修的列车的股道
             work.mainten_day.append(next_mainten_date)
             day_worktime_load[next_mainten_date]['all'] += work.Work_Package_Person_Day
             # 统计列车维修工时负载
@@ -328,16 +328,17 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
         if work.Work_Package_Number == '0502-01':
             continue
         # 确定这辆列车可以维修的轨道
-        if len(work.Track_Type_Priority) == 1 and 'A' in work.Track_Type_Priority:
-            track_type_priority = 'A'
-        elif len(work.Track_Type_Priority) == 1 and 'B' in work.Track_Type_Priority:
-            track_type_priority = 'B'
-        elif len(work.Track_Type_Priority) == 1 and 'C' in work.Track_Type_Priority:
-            track_type_priority = 'C'
-        elif 'A' in work.Track_Type_Priority and 'C' in work.Track_Type_Priority:
-            track_type_priority = 'AC'
+        track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
+        if len(work.Track_Type_Priority) == 1 and 'A' in track_type_priority:
+            track_type = 'A'
+        elif len(work.Track_Type_Priority) == 1 and 'B' in track_type_priority:
+            track_type = 'B'
+        elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
+            track_type = 'C'
+        elif 'A' in work.Track_Type_Priority and 'C' in track_type_priority:
+            track_type = 'AC'
         else:
-            track_type_priority = 'A'
+            track_type = 'A'
         work.mainten_day = []
         # 初始化基本信息
         # 股道优先级
@@ -394,7 +395,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                     range_days = range_days[-10:]
 
 
-            min_day = _select_less_day_worktime_load(work, day_worktime_load, range_days, next_mainten_date, alpha, train_limit, track_limit, track_limit_number, track_type_priority,train_lock)
+            min_day = _select_less_day_worktime_load(work, day_worktime_load, range_days, next_mainten_date, alpha, train_limit, track_limit, track_limit_number, track_type,train_lock)
             sum_interval += (min_day - next_mainten_date).days
             next_mainten_date = min_day
 
@@ -408,7 +409,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 day_worktime_load[next_mainten_date][work.Train_Number] = 0.0
             day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
             train_limit[next_mainten_date].add(work.Train_Number)
-            track_limit[track_type_priority][next_mainten_date].add(work.Train_Number)  # 维修的列车的股道
+            track_limit[track_type][next_mainten_date].add(work.Train_Number)  # 维修的列车的股道
             next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
 
 
@@ -453,7 +454,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         elif track_type_priority == 'AC':
             if len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) > 5:
                 continue
-        elif train_lock[info][work.Train_Number] == True:
+        if train_lock[info][work.Train_Number] == True:
             continue
         tmp.append(info)
         
@@ -464,7 +465,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         # pdb.set_trace()
         if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
             continue
-        if work.Train_Number in track_limit[track_type_priority][info] and day_worktime_load[info]['all'] < 160:
+        if work.Train_Number in track_limit[track_type_priority][info] and day_worktime_load[info]['all'] < 165:
             all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
             
     if all != {}:
@@ -484,7 +485,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
             continue
         elif track_type_priority == 'C' and work.Train_Number in track_limit['A'][info]:
             continue
-        elif day_worktime_load[info]['all'] > 160:
+        if day_worktime_load[info]['all'] > 165:
             continue
         if (track_type_priority =='A' or track_type_priority =='C') and len(track_limit[track_type_priority][info]) < track_limit_number[track_type_priority]:
             all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
@@ -500,9 +501,9 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
     for info in tmp_day_range:
         if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
             continue
-        if day_worktime_load[info]['all'] > 160:
+        if day_worktime_load[info]['all'] > 165:
             continue
-        elif train_lock[info][work.Train_Number] == True:
+        if train_lock[info][work.Train_Number] == True:
             continue
         all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
     
