@@ -16,41 +16,55 @@ import os
 # 分析30年内的股道使用数量，以文字的形式输出
 def analyze_track(ALL_workpackage, config, s_info):
     # 绘图
-    # A股道
-    track_limit = {}
-    # C股道
-    temp_track_limit = {}
+    today = convert_str_to_date(config['today'])
+    days_index = [today + relativedelta(days=i) for i in range(366 * 30)]
+    track_limit={track:{index: set()  for index in days_index} for track in ['A','B','C','AC','E']}
+    need_track_limie = {}
+    
     for work in ALL_workpackage:
-        track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-        if len(track_type_priority) == 1:
-            if 'A' in track_type_priority:
-                track = ('A', work.Train_Number)
-            elif 'C' in track_type_priority:
-                track = ('C', work.Train_Number)
-        elif 'A' in track_type_priority and 'C' in track_type_priority:
-            track = ('AC', work.Train_Number)
-        else:
+        if work.Work_Package_Interval_Conversion_Value <= 16:
             continue
+        track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
+        if len(work.Track_Type_Priority) == 1 and 'A' in track_type_priority:
+            track_type = 'A'
+        elif len(work.Track_Type_Priority) == 1 and 'B' in track_type_priority:
+            track_type = 'B'
+        elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
+            track_type = 'C'
+        elif 'A' in work.Track_Type_Priority and 'C' in track_type_priority:
+            track_type = 'AC'
+        else:
+            track_type = 'A'
 
         for day_info in work.mainten_day:
-            if track[0] == 'A':
-                if day_info not in track_limit:
-                    track_limit[day_info] = set()
-                track_limit[day_info].add(track[1])
-            elif track[0] == 'C':
-                if day_info not in temp_track_limit:
-                    temp_track_limit[day_info] = set()
-                temp_track_limit[day_info].add(track[1])
-
-    track_limit = dict(sorted(track_limit.items(), key=lambda x: x[0]))
+            track_limit[track_type][day_info].add(work.Train_Number)
+            if work.Need_Trial_Run == '是':
+                if day_info not in need_track_limie:
+                    need_track_limie[day_info] = set()
+                need_track_limie[day_info].add(work.Train_Number)
+            
+    track_A = track_limit['A']
+    track_A = dict(sorted(track_A.items(), key=lambda x: x[0]))
     with open(f'./results/{s_info}_track_limit.txt', 'w') as f:
-        for key, value in track_limit.items():
+        for key, value in track_A.items():
             if len(value) > 4:
                 f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
+                
+    with open(f'./results/{s_info}_track_limit_tmp.txt', 'w') as f:
+        for key, value in track_A.items():
+            if len(value) == 4:
+                f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
 
-    temp_track_limit = dict(sorted(temp_track_limit.items(), key=lambda x: x[0]))
+    track_C = track_limit['C']
+    track_C = dict(sorted(track_C.items(), key=lambda x: x[0]))
     with open(f'./results/{s_info}_temp_track_limit.txt', 'w') as f:
-        for key, value in temp_track_limit.items():
+        for key, value in track_C.items():
+            if len(value) > 1:
+                f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
+    
+    need_track_limie = dict(sorted(need_track_limie.items(), key=lambda x: x[0]))
+    with open(f'./results/{s_info}_need_track_limie.txt', 'w') as f:
+        for key, value in need_track_limie.items():
             if len(value) > 1:
                 f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
 

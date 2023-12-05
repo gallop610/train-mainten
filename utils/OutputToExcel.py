@@ -12,6 +12,7 @@ def output_wholeLife_plan(workpackage):
     mainten_quarter = []
     for i in range(len(workpackage)):
         work = workpackage[i]
+        work.Track_Type_Priority = sorted(work.Track_Type_Priority, key=lambda x: x[1], reverse=False)
         first_elements = [item[0] for item in work.Track_Type_Priority]
         track_type = ','.join(first_elements)
         for j in range(len(work.mainten_quarter)):
@@ -66,6 +67,7 @@ def output_year_plan(workpackage):
     mainten_month = []
     for i in range(len(workpackage)):
         work = workpackage[i]
+        work.Track_Type_Priority = sorted(work.Track_Type_Priority, key=lambda x: x[1], reverse=False)
         first_elements = [item[0] for item in work.Track_Type_Priority]
         track_type = ','.join(first_elements)
         for j in range(len(work.mainten_month)):
@@ -123,6 +125,7 @@ def output_month_plan(workpackage):
     mainten_day = []
     for i in range(len(workpackage)):
         work = workpackage[i]
+        work.Track_Type_Priority = sorted(work.Track_Type_Priority, key=lambda x: x[1], reverse=False)
         first_elements = [item[0] for item in work.Track_Type_Priority]
         track_type = ','.join(first_elements)
         for j in range(len(work.mainten_day)):
@@ -155,7 +158,8 @@ def output_month_plan(workpackage):
     
     col = -1
     for index, info in enumerate(mainten_day):
-        if info[20] == '2024-04-01':
+        # if info[20] == '2024-04-01':
+        if info[20] == '2026-12-31':
             col = index
             break
     mainten_day = mainten_day[:col]
