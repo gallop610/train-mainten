@@ -194,4 +194,3 @@ if __name__ == '__main__':
 
     # 打印结果
     print(f"程序运行时间：{int(hours)}时{int(minutes)}分{int(seconds)}秒")
-    exit(0)

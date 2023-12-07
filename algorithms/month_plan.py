@@ -27,14 +27,13 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
     # 维修列车数量限制
     train_limit = {index: set() for index in days_index}
     # 维修列车股道限制
-    track_limit={track:{index: set()  for index in days_index} for track in ['A','B','C','AC','E']}
-    track_limit_number ={'A':4,'B':28,'C':2,'AC':5}
-    
+    track_limit = {track: {index: set() for index in days_index} for track in ['A', 'B', 'C', 'AC', 'E']}
+    track_limit_number = {'A': 4, 'B': 28, 'C': 2, 'AC': 5}
+
     # lock限制在某天不能再修某辆车，用于1505-01工作包
     train_lock = {index: {i: False for i in range(1, 29)} for index in days_index}
     # 周转件数量限制
     turnover_limit = _day_turnover_package(year_plan_workpackage, days_index)
-
 
     for work in month_plan_workpackage:
         # 寻找维修间隔为8的工作包，开始直接排列
@@ -144,7 +143,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
     #但当数据量不大时，现有的代码已可以满足情况
     #现处理方案：将两个包独立于年计划，根据间隔设置上下限，通过控制上下限扩大或缩小范围（避免初期拥塞情况），通过选择函数选择接近于维修日期的天
 
-    for work in tqdm(special_package,desc="处理1505-01工作包"):
+    for work in tqdm(special_package, desc="处理1505-01工作包"):
         #如果把这段处理放在周转包前会出现因为lock的原因导致周转包无法排开（无解）的情况
         #这段代码注释掉了周转件处理中的检测lock所以可以正常运行，后续考虑如何解决或者把这段处理放在周转件处理之后
         if work.Work_Package_Number == "1505-01" or work.Work_Package_Number == "1505-02":
@@ -202,9 +201,9 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 week_end = next_mainten_date + relativedelta(days=1)
                 train_limit[week_end].add(work.Train_Number)
                 train_lock[week_end][work.Train_Number] = True
-                track_limit['C'][next_mainten_date].add(work.Train_Number)  # 维修的列车的股道
+                track_limit['C'][week_end].add(work.Train_Number)  # 维修的列车的股道
                 if work.Need_Trial_Run == '是':
-                    track_limit['E'][next_mainten_date].add(work.Train_Number)
+                    track_limit['E'][week_end].add(work.Train_Number)
 
                 # 统计列车维修工时负载,暂时好像还没用上？
                 if work.Train_Number not in day_worktime_load[next_mainten_date]:
@@ -214,7 +213,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 if work.Train_Number not in day_worktime_load[week_end]:
                     day_worktime_load[week_end][work.Train_Number] = 0.0
                 day_worktime_load[week_end][work.Train_Number] += work.Work_Package_Person_Day
-                
+
                 next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
 
     # 平均分配每天周转件的数量
@@ -243,7 +242,7 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
             if cnt2 == 8:
                 cnt2 = 1
 
-    for work in tqdm(turnover_package,desc='处理周转件'):
+    for work in tqdm(turnover_package, desc='处理周转件'):
         work.mainten_day = []
         # 初始化基本信息
         # 确定这辆列车可以维修的轨道
@@ -254,10 +253,17 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
             track_type = 'B'
         elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
             track_type = 'C'
-        elif 'A' in work.Track_Type_Priority and 'C' in track_type_priority:
+        elif 'B' in track_type_priority and track_type_priority['B'] == 1:
+            track_type = 'B'
+        elif 'A' in track_type_priority and 'C' in track_type_priority:
             track_type = 'AC'
+        # elif 'A' in track_type_priority and 'C' not in track_type_priority:
+        #     track_type = 'A'
+        # elif 'A' not in track_type_priority and 'C' in track_type_priority:
+        #     track_type = 'C'
         else:
             track_type = 'A'
+            
         start_mainten_date = work.Online_Date
         end_mainten_date = start_mainten_date + relativedelta(days=366 * 30)
 
@@ -323,13 +329,12 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 day_worktime_load[next_mainten_date][work.Train_Number] = 0.0
             day_worktime_load[next_mainten_date][work.Train_Number] += work.Work_Package_Person_Day
             next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
-            
-            
-    
+
     def trial_run_value(trial_run):
         return 0 if trial_run == '是' else 1
-    not_turnover_package.sort(key=lambda x: (x.Work_Package_Interval_Conversion_Value,x.Train_Number,trial_run_value(x.Need_Trial_Run),x.Work_Package_Person_Day), reverse=False)
-    
+
+    not_turnover_package.sort(key=lambda x: (x.Work_Package_Interval_Conversion_Value, x.Train_Number, trial_run_value(x.Need_Trial_Run), x.Work_Package_Person_Day), reverse=False)
+
     for work in tqdm(not_turnover_package, desc="处理非周转件"):
         if work.Work_Package_Number == '0502-01':
             continue
@@ -341,10 +346,17 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
             track_type = 'B'
         elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
             track_type = 'C'
-        elif 'A' in work.Track_Type_Priority and 'C' in track_type_priority:
+        # elif 'B' in track_type_priority and track_type_priority['B'] == 1:
+        #     track_type = 'B'
+        elif 'A' in track_type_priority and 'C' in track_type_priority:
             track_type = 'AC'
+        # elif 'A' in track_type_priority and 'C' not in track_type_priority:
+        #     track_type = 'A'
+        # elif 'A' not in track_type_priority and 'C' in track_type_priority:
+        #     track_type = 'C'
         else:
             track_type = 'A'
+            
         work.mainten_day = []
         # 初始化基本信息
         # 股道优先级
@@ -400,12 +412,9 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 elif lower_bound > range_days[-1]:
                     range_days = range_days[-10:]
 
-
-            min_day = _select_less_day_worktime_load(work, day_worktime_load, range_days, next_mainten_date, alpha, train_limit, track_limit, track_limit_number, track_type,train_lock)
+            min_day = _select_less_day_worktime_load(work, day_worktime_load, range_days, next_mainten_date, alpha, train_limit, track_limit, track_limit_number, track_type, train_lock)
             sum_interval += (min_day - next_mainten_date).days
             next_mainten_date = min_day
-
-
 
             # 确定当前维修日期之后，将当前维修日期添加到工作包维修日期列表，日期工时负载增加，并获取下次维修日期
             work.mainten_day.append(next_mainten_date)
@@ -420,7 +429,6 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
                 track_limit['E'][next_mainten_date].add(work.Train_Number)
             next_mainten_date = next_mainten_date + relativedelta(days=interval_days)
 
-
     return turnover_package + not_turnover_package + special_package + month_plan_workpackage
 
 
@@ -433,7 +441,7 @@ def _select_less_day_turnover_worktime_load(day_worktime_load, range_days, next_
     return [k for k, v in sorted(all.items(), key=lambda item: item[1])]
 
 
-def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_mainten_date, alpha, train_limit, track_limit, track_limit_number, track_type_priority,train_lock):
+def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_mainten_date, alpha, train_limit, track_limit, track_limit_number, track_type_priority, train_lock):
     """
     从日期负载工时中选择最小的日期。
     
@@ -448,6 +456,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         min_day: str
             工时负载最小的日期。
     """
+    work_time  = 280
     tmp_day_range = copy.deepcopy(day_range)
     tmp = []
     for info in day_range:
@@ -471,9 +480,9 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         # 1. 维修间隔内存在一天使用对应试车股道的车
         all = {}
         for info in day_range:
-            if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
+            if len(train_limit[info]) >= 7 and work.Train_Number not in train_limit[info]:
                 continue
-            if work.Train_Number in track_limit['E'][info] and day_worktime_load[info]['all'] < 200:
+            if work.Train_Number in track_limit['E'][info] and day_worktime_load[info]['all'] < work_time:
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
         if all != {}:
             return min(all, key=all.get)
@@ -481,81 +490,83 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
         all = {}
         for info in day_range:
             # 尽量不去股道切换
-            if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
+            if len(train_limit[info]) >= 7 and work.Train_Number not in train_limit[info]:
                 continue
             if track_type_priority == 'B' and (work.Train_Number in track_limit['A'][info] or work.Train_Number in track_limit['C'][info] or work.Train_Number in track_limit['AC'][info]):
                 continue
-            elif (track_type_priority == 'A' or track_type_priority=='C' or track_type_priority=='AC') and (work.Train_Number in track_limit['B'][info]):
+            elif (track_type_priority == 'A' or track_type_priority == 'C' or track_type_priority == 'AC') and (work.Train_Number in track_limit['B'][info]):
                 continue
             elif track_type_priority == 'A' and work.Train_Number in track_limit['C'][info]:
                 continue
             elif track_type_priority == 'C' and work.Train_Number in track_limit['A'][info]:
                 continue
-            if day_worktime_load[info]['all'] > 180:
+            if day_worktime_load[info]['all'] > work_time:
                 continue
-            if (track_type_priority =='A' or track_type_priority =='C') and len(track_limit[track_type_priority][info]) < track_limit_number[track_type_priority] and track_limit['E'][info] == set():
+            if (track_type_priority =='A' or track_type_priority =='C') and len(track_limit[track_type_priority][info]) < track_limit_number[track_type_priority]\
+                 and len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) < track_limit_number['AC'] and track_limit['E'][info] == set():
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha + len(train_limit[info])*100
             if track_type_priority =='AC' and len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) < track_limit_number[track_type_priority] and track_limit['E'][info] == set():
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha + len(train_limit[info])*100
-            
+
         if all != {}:
             return min(all, key=all.get)
     else:
         # 1. 维修间隔内存在一天正好使用该股道的天数
         all = {}
         for info in day_range:
-            if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
+            if len(train_limit[info]) >= 7 and work.Train_Number not in train_limit[info]:
                 continue
-            if work.Train_Number in track_limit[track_type_priority][info] and day_worktime_load[info]['all'] < 200:
+            if work.Train_Number in track_limit[track_type_priority][info] and day_worktime_load[info]['all'] < work_time:
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
-                
+
         if all != {}:
             return min(all, key=all.get)
-        
+
         # 2. 维修天数内，找不到一天使用该股道，因此选择一天股道约束满足的天塞入
         all = {}
         for info in day_range:
             # 尽量不去股道切换
-            if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
+            if len(train_limit[info]) >= 7 and work.Train_Number not in train_limit[info]:
                 continue
             if track_type_priority == 'B' and (work.Train_Number in track_limit['A'][info] or work.Train_Number in track_limit['C'][info] or work.Train_Number in track_limit['AC'][info]):
                 continue
-            elif (track_type_priority == 'A' or track_type_priority=='C' or track_type_priority=='AC') and (work.Train_Number in track_limit['B'][info]):
+            elif (track_type_priority == 'A' or track_type_priority == 'C' or track_type_priority == 'AC') and (work.Train_Number in track_limit['B'][info]):
                 continue
             elif track_type_priority == 'A' and work.Train_Number in track_limit['C'][info]:
                 continue
             elif track_type_priority == 'C' and work.Train_Number in track_limit['A'][info]:
                 continue
-            if day_worktime_load[info]['all'] > 180:
+            if day_worktime_load[info]['all'] > work_time:
                 continue
             # if track_limit['E'][info] == set():
             #     continue
-            if (track_type_priority =='A' or track_type_priority =='C') and len(track_limit[track_type_priority][info]) < track_limit_number[track_type_priority]:
+            if (track_type_priority =='A' or track_type_priority =='C') and len(track_limit[track_type_priority][info]) < track_limit_number[track_type_priority] \
+                and len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) < track_limit_number[track_type_priority]:
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha +len(train_limit[info])*50
             if track_type_priority =='AC' and len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) < track_limit_number[track_type_priority]:
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha +len(train_limit[info])*50
-            
+
         if all != {}:
             return min(all, key=all.get)
-        
+
     # 找不到满足股道约束的天，因此选择一天股道约束满足的天塞入
-    
+
     all = {}
     for info in tmp_day_range:
-        if len(train_limit[info]) >=7 and work.Train_Number not in train_limit[info]:
+        if len(train_limit[info]) >= 7 and work.Train_Number not in train_limit[info]:
             continue
-        if day_worktime_load[info]['all'] > 220:
+        if day_worktime_load[info]['all'] > work_time:
             continue
         if train_lock[info][work.Train_Number] == True:
             continue
         all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha
-    
+
     if all != {}:
         return min(all, key=all.get)
-    
+
     all = {}
     for info in tmp_day_range:
-        all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha +len(train_limit[info])*100
+        all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha + len(train_limit[info]) * 100
     return min(all, key=all.get)
 
 
@@ -625,8 +636,6 @@ def _generate_weekend_days(lower_bound, upper_bound):
     return date_list
 
 
-
-
 def _select_turnover_package(wholelife_workpackage):
     """
     从整个工作包中选择需要翻车的工作包和不需要翻车的工作包。
@@ -646,4 +655,3 @@ def _select_turnover_package(wholelife_workpackage):
     not_turnover_package = [info for info in wholelife_workpackage if info.Cooling_Time == 0 and info.Work_Package_Number not in special_list]
     special_package = [info for info in wholelife_workpackage if info.Work_Package_Number in special_list]
     return turnover_package, not_turnover_package, special_package
-

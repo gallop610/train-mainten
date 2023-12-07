@@ -13,7 +13,7 @@ LastMaintenTimeFilename : 上次维修数据管理V5.xlsx
 # 列车检修范围管理文件名
 TrainMaintenRangeFilename : 列车检修范围管理.xlsx
 # 从该日期之后计划排产
-today : 2023-4-1
+today : 2023-04-01
 # NumberOfMaintenTrainsPerDay: 3
 # 特殊工作包，不计入排产计划
 SpecialWorkPackage : 1601-01 1602-01 1603-01 1801-01 1802-01 1803-01 1804-01

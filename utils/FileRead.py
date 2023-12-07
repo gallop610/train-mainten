@@ -18,6 +18,7 @@ def read_file_config(yaml_file_path) -> dict:
     # 读取 YAML file
     with open(yaml_file_path, 'r',encoding = "UTF-8") as yaml_file:
         yaml_data = yaml.safe_load(yaml_file)
+    yaml_data['today'] = yaml_data['today'].strftime("%Y-%m-%d")
     return yaml_data
 
 def read_WorkPackage(filename) -> list:

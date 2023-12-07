@@ -158,8 +158,8 @@ def output_month_plan(workpackage):
     
     col = -1
     for index, info in enumerate(mainten_day):
-        # if info[20] == '2024-04-01':
-        if info[20] == '2026-12-31':
+        if info[20] == '2024-04-01':
+        # if info[20] == '2026-12-31':
             col = index
             break
     mainten_day = mainten_day[:col]

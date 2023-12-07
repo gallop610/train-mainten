@@ -157,3 +157,31 @@ def draw_track(ALL_workpackage, config, s_info):
     plt.legend()
     plt.title(f'{s_info}_track_number')
     plt.savefig(f'./results/{s_info}_track_number.png')
+
+
+def analyze_interval(ALL_workpackage, config, s_info):
+    today = convert_str_to_date(config['today'])
+    days_index = [today + relativedelta(days=i) for i in range(30 * 366)]
+    day_worktime_load = {index: 0.0 for index in days_index}
+    day_plan = {index: set() for index in days_index}
+
+    for index, work in enumerate(ALL_workpackage):
+        for day_date in work.mainten_day:
+            if work.Work_Package_Number != '1505-01':
+                day_worktime_load[day_date] += work.Work_Package_Person_Day
+            day_plan[day_date].add(index)
+            
+    for day in days_index:
+        # 统计维修天数之差和工时间隔
+        interval_list = []
+        for work_id in day_plan[day]:
+            mainten_index = ALL_workpackage[work_id].mainten_day.index(day)
+            if mainten_index == 0:
+                last_mainten_day = ALL_workpackage[work_id].Online_Date
+            interval_day = (day-last_mainten_day).days
+            interval_list.append((interval_day, ALL_workpackage[work_id].Work_Package_Interval_Value))
+            
+        
+        
+        
+        day_worktime_load[day] = day_worktime_load[day] / 8.0
