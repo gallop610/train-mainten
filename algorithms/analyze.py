@@ -22,8 +22,6 @@ def analyze_track(ALL_workpackage, config, s_info):
     need_track_limie = {}
     
     for work in ALL_workpackage:
-        if work.Work_Package_Interval_Conversion_Value <= 16:
-            continue
         track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
         if len(work.Track_Type_Priority) == 1 and 'A' in track_type_priority:
             track_type = 'A'
@@ -37,7 +35,12 @@ def analyze_track(ALL_workpackage, config, s_info):
             track_type = 'A'
 
         for day_info in work.mainten_day:
-            track_limit[track_type][day_info].add(work.Train_Number)
+            if work.Work_Package_Interval_Conversion_Value in [8,16,45]:
+                track_limit['B'][day_info].add(work.Train_Number)
+            elif work.Work_Package_Interval_Conversion_Value in [30]:
+                track_limit['A'][day_info].add(work.Train_Number)
+            else:
+                track_limit[track_type][day_info].add(work.Train_Number)
             if work.Need_Trial_Run == '是':
                 if day_info not in need_track_limie:
                     need_track_limie[day_info] = set()
@@ -110,7 +113,12 @@ def draw_track(ALL_workpackage, config, s_info):
 
         for day_info in work.mainten_day:
             if day_info < end_date:
-                track_limit[track_type][day_info].add(work.Train_Number)
+                if work.Work_Package_Interval_Conversion_Value in [8,16,45]:
+                    track_limit['B'][day_info].add(work.Train_Number)
+                elif work.Work_Package_Interval_Conversion_Value in [30]:
+                    track_limit['A'][day_info].add(work.Train_Number)
+                else:
+                    track_limit[track_type][day_info].add(work.Train_Number)
                 if work.Need_Trial_Run == '是':
                     if day_info not in need_track_limie:
                         need_track_limie[day_info] = set()

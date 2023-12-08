@@ -18,6 +18,11 @@ def adjust(ALL_workpackage, config):
     analyze_track(ALL_workpackage, config, 'not adjust')
     draw_track(ALL_workpackage, config, 'not adjust')
     ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
     analyze_track(ALL_workpackage, config, 'adjust')
     draw_track(ALL_workpackage, config, 'adjust')
     return ALL_workpackage
@@ -27,6 +32,7 @@ def adjust_E_workpackage(ALL_workpackage, config):
     pass
 
 def adjust_A_workpackage(ALL_workpackage, config):
+    return ALL_workpackage
     today = convert_str_to_date(config['today'])
     day_len = 10
     end_date = today + relativedelta(days=day_len * 366)
@@ -182,7 +188,7 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
         train_limit = {index: set() for index in days_index}
         # 列车股道限制
         track_limit={track:{index: set()  for index in days_index} for track in ['A','B','C','AC','E']}
-        track_limit_number = {'A': 4, 'B': 28, 'C': 2, 'AC': 5}
+        track_limit_number = {'A': 3, 'B': 28, 'C': 2, 'AC': 5}
         mainten_list =[]
         # 统计一年内的每天工时和维修计划
         for index, work in enumerate(ALL_workpackage):
@@ -205,7 +211,12 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
                     day_plan[day_date].add(index)
                     # 统计股道使用情况
                     train_limit[day_date].add(work.Train_Number)
-                    track_limit[track_type][day_date].add(work.Train_Number)
+                    if work.Work_Package_Interval_Conversion_Value in [8,16,45]:
+                        track_limit['B'][day_date].add(work.Train_Number)
+                    elif work.Work_Package_Interval_Conversion_Value in [30]:
+                        track_limit['A'][day_date].add(work.Train_Number)
+                    else:
+                        track_limit[track_type][day_date].add(work.Train_Number)
                     if work.Need_Trial_Run == '是':
                         track_limit['E'][day_date].add(work.Train_Number)
                     if work.Cooling_Time != 0:
@@ -270,7 +281,6 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
         min_worktime = float('inf')
         min_day = -1
         for day_info in range_days:
-            
             track_type_priority = {track[0]: track[1] for track in ALL_workpackage[max_work_id].Track_Type_Priority}
             if len(ALL_workpackage[max_work_id].Track_Type_Priority) == 1 and 'A' in track_type_priority:
                 track_type = 'A'
@@ -350,6 +360,9 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
         # 将这个工作安排到这天
         # 查找max_day对应的索引
         if min_day != -1 and min_day!=max_day:
+            # min_day== 2023-04-13号时：
+            # if min_day == datetime.strptime('2023-04-13', "%Y-%m-%d"):
+            #     print(track_limit['A'][min_day])
             index = ALL_workpackage[max_work_id].mainten_day.index(max_day)
             ALL_workpackage[max_work_id].mainten_day[index] = min_day
     return ALL_workpackage
