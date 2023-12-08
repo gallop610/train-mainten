@@ -346,14 +346,8 @@ def month_plan(month_plan_workpackage, year_plan_workpackage, config):
             track_type = 'B'
         elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
             track_type = 'C'
-        # elif 'B' in track_type_priority and track_type_priority['B'] == 1:
-        #     track_type = 'B'
         elif 'A' in track_type_priority and 'C' in track_type_priority:
             track_type = 'AC'
-        # elif 'A' in track_type_priority and 'C' not in track_type_priority:
-        #     track_type = 'A'
-        # elif 'A' not in track_type_priority and 'C' in track_type_priority:
-        #     track_type = 'C'
         else:
             track_type = 'A'
             
@@ -541,7 +535,7 @@ def _select_less_day_worktime_load(work, day_worktime_load, day_range, next_main
             # if track_limit['E'][info] == set():
             #     continue
             if (track_type_priority =='A' or track_type_priority =='C') and len(track_limit[track_type_priority][info]) < track_limit_number[track_type_priority] \
-                and len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) < track_limit_number[track_type_priority]:
+                and len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) < track_limit_number['AC']:
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha +len(train_limit[info])*50
             if track_type_priority =='AC' and len(track_limit['A'][info]) + len(track_limit['C'][info]) + len(track_limit['AC'][info]) < track_limit_number[track_type_priority]:
                 all[info] = day_worktime_load[info]['all'] + abs((info - next_mainten_date).days) * alpha +len(train_limit[info])*50

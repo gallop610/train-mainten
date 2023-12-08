@@ -17,9 +17,9 @@ def adjust(ALL_workpackage, config):
     # 调整A股道
     analyze_track(ALL_workpackage, config, 'not adjust')
     draw_track(ALL_workpackage, config, 'not adjust')
-    # ALL_workpackage = adjust_A_workpackage(ALL_workpackage, config)
-    # analyze_track(ALL_workpackage, config, 'adjust')
-    # draw_track(ALL_workpackage, config, 'adjust')
+    ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    analyze_track(ALL_workpackage, config, 'adjust')
+    draw_track(ALL_workpackage, config, 'adjust')
     return ALL_workpackage
 
 # 调整试车工作包
@@ -168,95 +168,51 @@ def adjust_A_workpackage(ALL_workpackage, config):
                         
 
 def adjust_worktime_load_balance(ALL_workpackage, config):
-    analyze_track(ALL_workpackage, config, 'not adjust')
-    draw_track(ALL_workpackage, config, 'not adjust')
-    return ALL_workpackage
-    # exit(0)
-
-    # 绘图
-    today = convert_str_to_date(config['today'])
-    day_len = 1
-    end_date = today + relativedelta(days=day_len * 366)
-    days_index = [today + relativedelta(days=i) for i in range(day_len * 366)]
-    day_worktime_load = {index: 0.0 for index in days_index}
-    day_plan = {index: set() for index in days_index}
-    train_limit = {index: set() for index in days_index}
-    # 检修道数量限制
-    track_limit = {index: set() for index in days_index}
-    # 临修道数量限制
-    temp_track_limit = {index: set() for index in days_index}
-
-    # 统计一年内的每天工时和维修计划
-    cnt = 0
-    for index, work in enumerate(ALL_workpackage):
-        for day_date in work.mainten_day:
-            if day_date < end_date:
-                day_worktime_load[day_date] += work.Work_Package_Person_Day
-                day_plan[day_date].add(index)
-                if work.Work_Package_Interval_Conversion_Value > 30:
-                    cnt += 1
-                train_limit[day_date].add(work.Train_Number)
-            else:
-                break
-    print(f'一年内月计划工作共执行次数为{cnt}')
-
-    for key, value in day_plan.items():
-        track = set()
-        for index in value:
-            track_type_priority = {track[0]: track[1] for track in ALL_workpackage[index].Track_Type_Priority}
-            if len(track_type_priority) == 1:
-                if 'A' in track_type_priority:
-                    track.add(('A', ALL_workpackage[index].Train_Number))
-                elif 'C' in track_type_priority:
-                    track.add(('C', ALL_workpackage[index].Train_Number))
-            elif 'A' in track_type_priority and 'C' in track_type_priority:
-                track.add(('AC', ALL_workpackage[index].Train_Number))
-        for info in track:
-            if info[0] == 'A':
-                track_limit[key].add(info[1])
-            elif info[0] == 'C':
-                temp_track_limit[key].add(info[1])
-
-    t1_1 = []
-    t1_2 = []
-    t1_3 = []
-    t1_4 = []
-    t1_5 = []
-    for info in sorted(days_index)[:day_len * 365]:
-        t1_1.append(day_worktime_load[info])
-        t1_2.append(len(train_limit[info]))
-        t1_3.append(len(track_limit[info]))
-        t1_4.append(len(temp_track_limit[info]))
-        t1_5.append(len(track_limit[info]) + len(temp_track_limit[info]))
-
     # 首先处理工时较大的天数
     number_of_local_adjustments = int(config['number_of_local_adjustments'])
     mainten_set = set()
 
-    print('正在调整工时较大的天数...')
-    # 开始执行local search
-    for _ in tqdm(range(number_of_local_adjustments)):
+    for _ in tqdm(range(number_of_local_adjustments),desc='调整工时'):
         today = convert_str_to_date(config['today'])
-        end_date = today + relativedelta(days=365 * day_len)
-        days_index = [today + relativedelta(days=i) for i in range(day_len * 365)]
-        day_worktime_load = {index: 0 for index in days_index}
+        day_len = 1
+        end_date = today + relativedelta(days=day_len * 366)
+        days_index = [today + relativedelta(days=i) for i in range(day_len * 366)]
+        day_worktime_load = {index: 0.0 for index in days_index}
         day_plan = {index: set() for index in days_index}
         train_limit = {index: set() for index in days_index}
-
+        # 列车股道限制
+        track_limit={track:{index: set()  for index in days_index} for track in ['A','B','C','AC','E']}
+        track_limit_number = {'A': 4, 'B': 28, 'C': 2, 'AC': 5}
+        mainten_list =[]
         # 统计一年内的每天工时和维修计划
-
-        # 一年内的所有月计划包的维修计划
-        mainten_list = []
-
         for index, work in enumerate(ALL_workpackage):
-            if work.Work_Package_Number in ['1505-01', '1505-02']:
-                continue
+            track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
+            if len(work.Track_Type_Priority) == 1 and 'A' in track_type_priority:
+                track_type = 'A'
+            elif len(work.Track_Type_Priority) == 1 and 'B' in track_type_priority:
+                track_type = 'B'
+            elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
+                track_type = 'C'
+            elif 'A' in track_type_priority and 'C' in track_type_priority:
+                track_type = 'AC'
+            else:
+                track_type = 'A'
+                
             for indexx, day_date in enumerate(work.mainten_day):
                 if day_date < end_date:
-                    day_worktime_load[day_date] += work.Work_Package_Person_Day
+                    if work.Work_Package_Number not in ['1505-01', '1505-02']:
+                        day_worktime_load[day_date] += work.Work_Package_Person_Day
                     day_plan[day_date].add(index)
+                    # 统计股道使用情况
                     train_limit[day_date].add(work.Train_Number)
-                    if work.Work_Package_Interval_Conversion_Value <= 30:
+                    track_limit[track_type][day_date].add(work.Train_Number)
+                    if work.Need_Trial_Run == '是':
+                        track_limit['E'][day_date].add(work.Train_Number)
+                    if work.Cooling_Time != 0:
+                        continue
+                    if  work.Work_Package_Number in ['1505-01', '1505-02']:
+                        continue
+                    if work.Work_Package_Interval_Conversion_Value <= 45:
                         continue
                     mainten_list.append((day_date, index, indexx))
                 else:
@@ -314,112 +270,88 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
         min_worktime = float('inf')
         min_day = -1
         for day_info in range_days:
-            if ALL_workpackage[max_work_id].Train_Number in train_limit[day_info] or len(train_limit[day_info]) <= 5:
-                if min_worktime >= day_worktime_load[day_info]:
-                    min_worktime = day_worktime_load[day_info]
-                    min_day = day_info
+            
+            track_type_priority = {track[0]: track[1] for track in ALL_workpackage[max_work_id].Track_Type_Priority}
+            if len(ALL_workpackage[max_work_id].Track_Type_Priority) == 1 and 'A' in track_type_priority:
+                track_type = 'A'
+            elif len(ALL_workpackage[max_work_id].Track_Type_Priority) == 1 and 'B' in track_type_priority:
+                track_type = 'B'
+            elif len(ALL_workpackage[max_work_id].Track_Type_Priority) == 1 and 'C' in track_type_priority:
+                track_type = 'C'
+            elif 'A' in track_type_priority and 'C' in track_type_priority:
+                track_type = 'AC'
+            else:
+                track_type = 'A'
+            if ALL_workpackage[max_work_id].Need_Trial_Run == '是':
+                # continue
+                if ALL_workpackage[max_work_id].Train_Number in track_limit['E'][day_info]:
+                    if ALL_workpackage[max_work_id].Train_Number in track_limit[track_type][day_info]:
+                        if min_worktime >= day_worktime_load[day_info]:
+                            min_worktime = day_worktime_load[day_info]
+                            min_day = day_info
+                elif track_limit['E'][day_info] == set():
+                    if ALL_workpackage[max_work_id].Train_Number in track_limit[track_type][day_info]:
+                        if min_worktime >= day_worktime_load[day_info]:
+                            min_worktime = day_worktime_load[day_info]
+                            min_day = day_info
+                    else:          
+                        # 尽量不去股道切换
+                        if len(train_limit[day_info]) >= 7 and ALL_workpackage[max_work_id].Train_Number not in train_limit[day_info]:
+                            continue
+                        if track_type == 'B' and (ALL_workpackage[max_work_id].Train_Number in track_limit['A'][day_info] or ALL_workpackage[max_work_id].Train_Number in track_limit['C'][day_info] or ALL_workpackage[max_work_id].Train_Number in track_limit['AC'][day_info]):
+                            continue
+                        elif (track_type == 'A' or track_type == 'C' or track_type == 'AC') and (ALL_workpackage[max_work_id].Train_Number in track_limit['B'][day_info]):
+                            continue
+                        elif track_type == 'A' and ALL_workpackage[max_work_id].Train_Number in track_limit['C'][day_info]:
+                            continue
+                        elif track_type == 'C' and ALL_workpackage[max_work_id].Train_Number in track_limit['A'][day_info]:
+                            continue
+                        
+                        if (track_type =='A' or track_type =='C') and len(track_limit[track_type][day_info]) < track_limit_number[track_type] \
+                            and len(track_limit['A'][day_info]) + len(track_limit['C'][day_info]) + len(track_limit['AC'][day_info]) < track_limit_number['AC']:
+                            if min_worktime >= day_worktime_load[day_info]:
+                                min_worktime = day_worktime_load[day_info]
+                                min_day = day_info
+                        if track_type =='AC' and len(track_limit['A'][day_info]) + len(track_limit['C'][day_info]) + len(track_limit['AC'][day_info]) < track_limit_number[track_type]:
+                            if min_worktime >= day_worktime_load[day_info]:
+                                min_worktime = day_worktime_load[day_info]
+                                min_day = day_info
+            else:
+                # continue
+                if ALL_workpackage[max_work_id].Train_Number in track_limit[track_type][day_info]:
+                    # continue
+                    if min_worktime >= day_worktime_load[day_info]:
+                        min_worktime = day_worktime_load[day_info]
+                        min_day = day_info
+                else:
+                    # continue
+                    # 尽量不去股道切换
+                    if len(train_limit[day_info]) >= 7 and ALL_workpackage[max_work_id].Train_Number not in train_limit[day_info]:
+                        continue
+                    if track_type == 'B' and (ALL_workpackage[max_work_id].Train_Number in track_limit['A'][day_info] or ALL_workpackage[max_work_id].Train_Number in track_limit['C'][day_info] or ALL_workpackage[max_work_id].Train_Number in track_limit['AC'][day_info]):
+                        continue
+                    elif (track_type == 'A' or track_type == 'C' or track_type == 'AC') and (ALL_workpackage[max_work_id].Train_Number in track_limit['B'][day_info]):
+                        continue
+                    elif track_type == 'A' and ALL_workpackage[max_work_id].Train_Number in track_limit['C'][day_info]:
+                        continue
+                    elif track_type == 'C' and ALL_workpackage[max_work_id].Train_Number in track_limit['A'][day_info]:
+                        continue
+                    
+                    if (track_type =='A' or track_type =='C') and len(track_limit[track_type][day_info]) < track_limit_number[track_type] \
+                        and len(track_limit['A'][day_info]) + len(track_limit['C'][day_info]) + len(track_limit['AC'][day_info]) < track_limit_number['AC']:
+                        if min_worktime >= day_worktime_load[day_info]:
+                            min_worktime = day_worktime_load[day_info]
+                            min_day = day_info
+                    if track_type =='AC' and len(track_limit['A'][day_info]) + len(track_limit['C'][day_info]) + len(track_limit['AC'][day_info]) < track_limit_number[track_type]:
+                        if min_worktime >= day_worktime_load[day_info]:
+                            min_worktime = day_worktime_load[day_info]
+                            min_day = day_info
 
         # 将这个工作安排到这天
         # 查找max_day对应的索引
-        if min_day != -1:
+        if min_day != -1 and min_day!=max_day:
             index = ALL_workpackage[max_work_id].mainten_day.index(max_day)
             ALL_workpackage[max_work_id].mainten_day[index] = min_day
-
-    print(f'共调整月计划工作包{len(mainten_set)}次')
-
-    # 绘图
-    today = convert_str_to_date(config['today'])
-    end_date = today + relativedelta(days=day_len * 365)
-    days_index = [today + relativedelta(days=i) for i in range(day_len * 365)]
-    day_worktime_load = {index: 0.0 for index in days_index}
-    day_plan = {index: set() for index in days_index}
-    train_limit = {index: set() for index in days_index}
-
-    # 统计一年内的每天工时和维修计划
-    for index, work in enumerate(ALL_workpackage):
-        for day_date in work.mainten_day:
-            if day_date < end_date:
-                day_worktime_load[day_date] += work.Work_Package_Person_Day
-                day_plan[day_date].add(index)
-                train_limit[day_date].add(work.Train_Number)
-            else:
-                break
-
-    for key, value in day_plan.items():
-        track = set()
-        for index in value:
-            track_type_priority = {track[0]: track[1] for track in ALL_workpackage[index].Track_Type_Priority}
-            if len(track_type_priority) == 1:
-                if 'A' in track_type_priority:
-                    track.add(('A', ALL_workpackage[index].Train_Number))
-                elif 'C' in track_type_priority:
-                    track.add(('C', ALL_workpackage[index].Train_Number))
-            elif 'A' in track_type_priority and 'C' in track_type_priority:
-                track.add(('AC', ALL_workpackage[index].Train_Number))
-        for info in track:
-            if info[0] == 'A':
-                track_limit[key].add(info[1])
-            elif info[0] == 'C':
-                temp_track_limit[key].add(info[1])
-
-    t2_1 = []
-    t2_2 = []
-    t2_3 = []
-    t2_4 = []
-    t2_5 = []
-    for info in sorted(days_index)[:day_len * 365]:
-        t2_1.append(day_worktime_load[info])
-        t2_2.append(len(train_limit[info]))
-        t2_3.append(len(track_limit[info]))
-        t2_4.append(len(temp_track_limit[info]))
-        t2_5.append(len(track_limit[info]) + len(temp_track_limit[info]))
-
-    plt.clf()
-    plt.plot(t1_1, label='not adjust worktime', color='b')
-    plt.plot(t2_1, label='adjust worktime', color='r')
-    y_ticks = [160, 180, 200, 220, 240]
-    plt.yticks(y_ticks)
-    for y_val in y_ticks:
-        plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
-    plt.legend()
-    plt.title(f'month_worktime_load_{number_of_local_adjustments}')
-    plt.savefig(f'./results/month_worktime_load.png')
-
-    plt.clf()
-    plt.plot(t1_2, label='not adjust train number', color='b')
-    plt.plot(t2_2, label='adjust train number', color='r')
-    y_ticks = [2, 3, 4, 5, 6, 7, 14]
-    plt.yticks(y_ticks)
-    for y_val in y_ticks:
-        plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
-    plt.legend()
-    plt.title(f'month_train_number_{number_of_local_adjustments}')
-    plt.savefig(f'./results/month_train_number.png')
-
-    plt.clf()
-    plt.plot(t1_3, label='Only A', color='b')
-    plt.plot(t1_4, label='Only C', color='r')
-    # plt.scatter(t1_5, label=' A+C', color='g')
-    y_ticks = [1, 2, 3, 4, 5, 6, 7, 14]
-    plt.yticks(y_ticks)
-    for y_val in y_ticks:
-        plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
-    plt.legend()
-    plt.title(f'track_noadjust_{number_of_local_adjustments}')
-    plt.savefig(f'./results/track_noadjust_{number_of_local_adjustments}.png')
-
-    plt.clf()
-    plt.plot(t2_3, label='Only A', color='b')
-    plt.plot(t2_4, label='Only C', color='r')
-    # plt.scatter(t2_5, label=' A+C', color='g')
-    y_ticks = [1, 2, 3, 4, 5, 6, 7, 14]
-    plt.yticks(y_ticks)
-    for y_val in y_ticks:
-        plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
-    plt.legend()
-    plt.title(f'track_adjust_{number_of_local_adjustments}')
-    plt.savefig(f'./results/track_adjust_{number_of_local_adjustments}.png')
-
     return ALL_workpackage
 
 

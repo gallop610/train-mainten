@@ -31,7 +31,7 @@ def analyze_track(ALL_workpackage, config, s_info):
             track_type = 'B'
         elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
             track_type = 'C'
-        elif 'A' in work.Track_Type_Priority and 'C' in track_type_priority:
+        elif 'A' in track_type_priority and 'C' in track_type_priority:
             track_type = 'AC'
         else:
             track_type = 'A'
@@ -50,10 +50,10 @@ def analyze_track(ALL_workpackage, config, s_info):
             if len(value) > 4:
                 f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
                 
-    with open(f'./results/{s_info}_track_limit_tmp.txt', 'w') as f:
-        for key, value in track_A.items():
-            if len(value) == 4:
-                f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
+    # with open(f'./results/{s_info}_track_limit_tmp.txt', 'w') as f:
+    #     for key, value in track_A.items():
+    #         if len(value) == 4:
+    #             f.write('{},{}\n'.format(key, ','.join([str(v) for v in value])))
 
     track_C = track_limit['C']
     track_C = dict(sorted(track_C.items(), key=lambda x: x[0]))
@@ -79,9 +79,6 @@ def draw_track(ALL_workpackage, config, s_info):
     day_plan = {index: set() for index in days_index}
     train_limit = {index: set() for index in days_index}
     # 检修道数量限制
-    track_limit = {index: set() for index in days_index}
-    # 临修道数量限制
-    temp_track_limit = {index: set() for index in days_index}
 
     # 统计一年内的每天工时和维修计划
     for work in ALL_workpackage:
@@ -93,26 +90,32 @@ def draw_track(ALL_workpackage, config, s_info):
             else:
                 break
 
+    track_limit={track:{index: set()  for index in days_index} for track in ['A','B','C','AC','E']}
+    need_track_limie = {}
+    
     for work in ALL_workpackage:
-        track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
-        if len(track_type_priority) == 1:
-            if 'A' in track_type_priority:
-                track = ('A', work.Train_Number)
-            elif 'C' in track_type_priority:
-                track = ('C', work.Train_Number)
-        elif 'A' in track_type_priority and 'C' in track_type_priority:
-            track = ('AC', work.Train_Number)
-        else:
+        if work.Work_Package_Interval_Conversion_Value <= 16:
             continue
+        track_type_priority = {track[0]: track[1] for track in work.Track_Type_Priority}
+        if len(work.Track_Type_Priority) == 1 and 'A' in track_type_priority:
+            track_type = 'A'
+        elif len(work.Track_Type_Priority) == 1 and 'B' in track_type_priority:
+            track_type = 'B'
+        elif len(work.Track_Type_Priority) == 1 and 'C' in track_type_priority:
+            track_type = 'C'
+        elif 'A' in track_type_priority and 'C' in track_type_priority:
+            track_type = 'AC'
+        else:
+            track_type = 'A'
 
         for day_info in work.mainten_day:
             if day_info < end_date:
-                if track[0] == 'A':
-                    track_limit[day_info].add(track[1])
-                elif track[0] == 'C':
-                    temp_track_limit[day_info].add(track[1])
-            else:
-                break
+                track_limit[track_type][day_info].add(work.Train_Number)
+                if work.Need_Trial_Run == '是':
+                    if day_info not in need_track_limie:
+                        need_track_limie[day_info] = set()
+                    need_track_limie[day_info].add(work.Train_Number)
+                
 
     t1 = []
     t2 = []
@@ -122,9 +125,9 @@ def draw_track(ALL_workpackage, config, s_info):
     for info in sorted(days_index)[:day_len * 365]:
         t1.append(day_worktime_load[info])
         t2.append(len(train_limit[info]))
-        t3.append(len(track_limit[info]))
-        t4.append(len(temp_track_limit[info]))
-        t5.append(len(track_limit[info]) + len(temp_track_limit[info]))
+        t3.append(len(track_limit['A'][info]))
+        t4.append(len(track_limit['C'][info]))
+        t5.append(len(track_limit['A'][info]) + len(track_limit['C'][info]))
 
     plt.clf()
     plt.plot(t1, label=f'{s_info} worktime', color='b')

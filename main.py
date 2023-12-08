@@ -169,6 +169,7 @@ def Month_Plan(config):
             month.append(info)
     result = month_plan(month, year, config)
     result = adjust(result, config)
+    # exit(0)
     
     output_month_plan(result)
 
