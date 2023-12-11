@@ -18,11 +18,7 @@ def adjust(ALL_workpackage, config):
     analyze_track(ALL_workpackage, config, 'not adjust')
     draw_track(ALL_workpackage, config, 'not adjust')
     ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
-    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
-    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
-    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
-    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
-    # ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    ALL_workpackage = adjust_combine_workpackage(ALL_workpackage,config)
     analyze_track(ALL_workpackage, config, 'adjust')
     draw_track(ALL_workpackage, config, 'adjust')
     return ALL_workpackage
@@ -254,7 +250,7 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
             upper_bound_1 = this_mainten_date + relativedelta(days=int(interval_days * 0.05))
             lower_bound_1 = this_mainten_date - relativedelta(days=int(interval_days * 0.05))
         else:
-            upper_bound_1 = this_mainten_date + relativedelta(days=int(interval_days * 0.10))
+            upper_bound_1 = this_mainten_date + relativedelta(days=int(interval_days * 0.05))
             lower_bound_1 = this_mainten_date - relativedelta(days=int(interval_days * 0.10))
 
         # 根据下一次维修的日期，反推出上一次可接受的维修日期
@@ -367,6 +363,95 @@ def adjust_worktime_load_balance(ALL_workpackage, config):
             ALL_workpackage[max_work_id].mainten_day[index] = min_day
     return ALL_workpackage
 
+def adjust_combine_workpackage(ALL_workpackage,config):
+    today = convert_str_to_date(config['today'])
+    day_len = 30
+    days_index = [today + relativedelta(days=i) for i in range(day_len * 366)]
+    end_date = today + relativedelta(days=day_len * 366)
+    # 列车股道限制
+
+    for work in ALL_workpackage:
+        # 不考虑组包中的试车包
+        if work.Need_Trial_Run == '是':
+            continue
+        
+        work_type = type(work.Combined_Work_Package_Number)
+        if work_type == float:
+            continue
+        # 维修间隔
+        interval_days = int(work.Work_Package_Interval_Conversion_Value)
+        if interval_days <= 45:
+            continue
+
+        Train_Number = work.Train_Number
+        relate_work = work.Combined_Work_Package_Number
+        if relate_work == work.Work_Package_Number:
+            continue
+
+        work_index = ALL_workpackage.index(work)
+
+        for find_work in ALL_workpackage:
+            if find_work.Train_Number == Train_Number and find_work.Work_Package_Number == relate_work:
+                relate_work = find_work
+                break
+            else: continue
+
+        for mainten_day in work.mainten_day:
+            # if mainten_day > end_date:
+            #     break
+            last_mainten_date, next_mainten_date = get_last_mainten_date(work, mainten_day)
+            if next_mainten_date == None:
+                break
+            # print(last_mainten_date, next_mainten_date)
+            # 维修间隔
+            interval_days = int(work.Work_Package_Interval_Conversion_Value)
+
+            # 根据历史维修信息，计算下一次维修的日期
+            this_mainten_date = last_mainten_date + relativedelta(days=interval_days)
+            # 如果下次维修的日期小于当前日期，说明已经欠修，需要将当前日期置为第一次维修
+            if this_mainten_date < today:
+                this_mainten_date = today
+
+            # 确定这次维修的上下界
+            if interval_days <= 90:
+                upper_bound_1 = this_mainten_date + relativedelta(days=int(interval_days * 0.05))
+                lower_bound_1 = this_mainten_date - relativedelta(days=int(interval_days * 0.20))
+            else:
+                upper_bound_1 = this_mainten_date + relativedelta(days=int(interval_days * 0.05))
+                lower_bound_1 = this_mainten_date - relativedelta(days=int(interval_days * 0.20))
+
+            # 根据下一次维修的日期，反推出上一次可接受的维修日期
+            if 30 < interval_days <= 90:
+                upper_bound_2 = next_mainten_date - relativedelta(days=int(interval_days * 0.80))
+                lower_bound_2 = next_mainten_date - relativedelta(days=int(interval_days * 1.05))
+            else:
+                upper_bound_2 = next_mainten_date - relativedelta(days=int(interval_days * 0.80))
+                lower_bound_2 = next_mainten_date - relativedelta(days=int(interval_days * 1.05))
+
+            # 获得这两个区间的一个交集天数
+            upper_bound = min(upper_bound_1, upper_bound_2, today + relativedelta(days=364))
+            lower_bound = max(today, lower_bound_1, lower_bound_2)
+
+            # 按年计划的月份生成日期范围
+            range_days = [day for day in relate_work.mainten_day if day >= lower_bound and day <= upper_bound]
+            
+            # 没有找到组合包
+            if len(range_days) == 0:
+                continue
+            select_lessdis_day = ""
+            min_dis = float('inf')
+            for i in range_days:
+                
+                
+                
+                if abs((mainten_day - i).days) < min_dis:
+                    select_lessdis_day = i
+                    min_dis = abs((mainten_day - i).days)
+            index = work.mainten_day.index(mainten_day)
+            ALL_workpackage[work_index].mainten_day[index] = select_lessdis_day
+    return ALL_workpackage
+
+
 
 def get_last_mainten_date(workpackage, this_mainten_date):
     # 寻找上一次维修的日期
@@ -385,26 +470,3 @@ def get_last_mainten_date(workpackage, this_mainten_date):
         else:
             continue
     return last_mainten_date, next_mainten_date
-
-
-def _draw(day_worktime_load, train_limit, index, str_name):
-    t1 = []
-    t2 = []
-    for info in sorted(index)[:365]:
-        t1.append(day_worktime_load[info])
-        t2.append(len(train_limit[info]))
-    plt.clf()
-    plt.scatter(t1, label='work time', color='r')
-    y_ticks = [20 * i for i in range(1, 13)]
-    plt.yticks(y_ticks)
-    for y_val in y_ticks:
-        plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
-    plt.savefig(f'./results/{str_name}_month_worktime_load.png')
-
-    plt.clf()
-    plt.scatter(t2, label='train number', color='b')
-    y_ticks = [2, 3, 4, 7, 14]
-    plt.yticks(y_ticks)
-    for y_val in y_ticks:
-        plt.axhline(y=y_val, linestyle='--', color='gray', linewidth=0.3)
-    plt.savefig(f'./results/{str_name}_train_number.png')
