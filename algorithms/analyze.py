@@ -92,6 +92,12 @@ def draw_track(ALL_workpackage, config, s_info):
                 train_limit[day_date].add(work.Train_Number)
             else:
                 break
+    
+    # 找到字典中值最大的键
+    max_key = max(day_worktime_load, key=day_worktime_load.get)
+
+    # 输出最大值的键
+    print("具有最大值的键是:", max_key)
 
     track_limit={track:{index: set()  for index in days_index} for track in ['A','B','C','AC','E']}
     need_track_limie = {}

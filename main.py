@@ -169,9 +169,13 @@ def Month_Plan(config):
             month.append(info)
     result = month_plan(month, year, config)
     result = adjust(result, config)
-    # exit(0)
+    exit(0)
     
     output_month_plan(result)
+
+def Week_Plan(config):
+    filename = './results/月计划.xlsx'
+    determine_track(filename,config)
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -187,6 +191,7 @@ if __name__ == '__main__':
     # Wholelife_Plan(config)
     # Year_Plan(config)
     Month_Plan(config)
+    # Week_Plan(config)
     
     end_time = time.time()
     elapsed_time_in_seconds = end_time - start_time

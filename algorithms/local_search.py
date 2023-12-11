@@ -17,8 +17,12 @@ def adjust(ALL_workpackage, config):
     # 调整A股道
     analyze_track(ALL_workpackage, config, 'not adjust')
     draw_track(ALL_workpackage, config, 'not adjust')
+    ALL_workpackage = adjust_combine_workpackage(ALL_workpackage,config)
+    ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
     ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
     ALL_workpackage = adjust_combine_workpackage(ALL_workpackage,config)
+    ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
+    ALL_workpackage = adjust_worktime_load_balance(ALL_workpackage, config)
     analyze_track(ALL_workpackage, config, 'adjust')
     draw_track(ALL_workpackage, config, 'adjust')
     return ALL_workpackage
