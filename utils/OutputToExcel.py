@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 import pandas as pd
 from utils.utils_time import convert_day_to_quarter, convert_day_to_month, quarter_difference, month_difference, add_quarters, add_months
-        
+
 def output_wholeLife_plan(workpackage):
     mainten_quarter = []
     for i in range(len(workpackage)):
@@ -46,6 +46,15 @@ def output_wholeLife_plan(workpackage):
     # 判断文件夹是否存在，如果不存在则创建
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
+    
+    # 对于非委外的工作包与委外工作包，输出到两个不同文件
+    # 委外工作包 & 非委外工作包
+    # if workpackage[0].Work_Package_Contract != '委外':
+    #     df.to_excel(os.path.join(folder_path, '全寿命计划.xlsx'),sheet_name='全寿命计划',index=False)
+    # else:
+    #     df.to_excel(os.path.join(folder_path, '全寿命计划(委外).xlsx'),sheet_name='全寿命计划(委外)',index=False)
+    
+    # 对于非委外工作包与委外工作包，进行合并输出
     df.to_excel(os.path.join(folder_path, '全寿命计划.xlsx'),sheet_name='全寿命计划',index=False)
     
     # wb = openpyxl.Workbook()
@@ -82,11 +91,11 @@ def output_year_plan(workpackage):
             over_under_repaired_percentage = over_under_repaired/(int(work.Work_Package_Interval_Conversion_Value/30))
             # 红线过修
             if work.Work_Package_Interval_Conversion_Value>90:
-                red_line_over_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*0.90/90)))
+                red_line_over_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*0.90/30)))
             else:
                 red_line_over_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*0.95/30)))
             # 红线欠修
-            red_line_repair_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*1.05/90)))             
+            red_line_repair_date = add_months(last_mainten,int(math.ceil(work.Work_Package_Interval_Conversion_Value*1.05/30)))             
                 
             tmp = [work.Train_Type,work.Train_Number,work.Work_Package_Number,work.Work_Package_Name,work.Electrifiable,work.Powerless,work.Work_Package_Interval_Time_Dimension,
                    work.Work_Package_Interval_Value,work.Work_Package_Interval_Conversion_Value,work.Work_Package_Person_Day,work.Work_Package_Person_Day_Unit_Price,work.Need_Trial_Run,
@@ -103,8 +112,16 @@ def output_year_plan(workpackage):
     # 判断文件夹是否存在，如果不存在则创建
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-    df.to_excel(os.path.join(folder_path, '年计划.xlsx'),sheet_name='年计划',index=False)
     
+    # 对于非委外工作包与委外工作包，输出到两个不同文件
+    # 委外工作包 & 非委外工作包
+    # if workpackage[0].Work_Package_Contract != '委外':
+    #     df.to_excel(os.path.join(folder_path, '年计划.xlsx'),sheet_name='年计划',index=False)
+    # else:
+    #     df.to_excel(os.path.join(folder_path, '年计划(委外).xlsx'),sheet_name='年计划(委外)',index=False)
+    
+    # 对于非委外工作包与委外工作包，进行合并输出
+    df.to_excel(os.path.join(folder_path, '年计划.xlsx'),sheet_name='年计划',index=False)
     
     # wb = openpyxl.Workbook()
     # ws = wb.create_sheet(title='年计划')
@@ -169,9 +186,14 @@ def output_month_plan(workpackage):
     # 判断文件夹是否存在，如果不存在则创建
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-    df.to_excel(os.path.join(folder_path, '月计划.xlsx'),sheet_name='月计划',index=False)
-
-
+        
+    if workpackage[0].Work_Package_Contract != '委外':
+        df.to_excel(os.path.join(folder_path, '月计划.xlsx'), sheet_name='月计划', index=False)
+    else:
+        df.to_excel(os.path.join(folder_path, '月计划(委外).xlsx'), sheet_name='月计划(委外)', index=False)    
+        
+    # 对于非委外工作包与委外工作包，进行合并输出
+    df.to_excel(os.path.join(folder_path, '月计划.xlsx'), sheet_name='月计划', index=False)
 
     # wb = openpyxl.Workbook()
     # ws = wb.create_sheet(title='月计划')

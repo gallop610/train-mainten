@@ -173,6 +173,145 @@ def wholelife_plan(wholelife_workpackage, config):
     return turnover_package + not_turnover_package
 
 
+def wholelife_plan_contract(wholelife_workpackage_contract, config):
+    '''
+    全寿命计划算法(委外工作包)
+
+    Args:
+        wholelife_workpackage_contract: 全寿命计划包含所有委外工作包的列表
+        config: 算法的配置信息
+
+    Returns:
+        排班后的全寿命委外工作包
+    '''
+
+    # 初始化参数
+    today = convert_str_to_date(config['today'])
+    current_quarter = convert_day_to_quarter(today)
+    turnover_overtake_quarter = int(config['turnover_overtake_quarter'])
+    wholelife_overtake_percentage = float(config['wholelife_overtake_percentage'])
+
+    # 初始化维修季度、维修间隔
+    sum_interval = 0
+    quarter_list = gen_quarter_120(current_quarter)
+
+    # 全寿命计划的周转件委外工作包
+    print('正在处理全寿命计划的周转件委外工作包...')
+
+    contract_package = wholelife_workpackage_contract
+    
+    # 筛选含有周转件约束的工作包和不含周转件约束的工作包
+    turnover_package, not_turnover_package = _select_turnover_package(contract_package)
+
+    # 排序含有周转件约束的工作包
+    turnover_package.sort(key=lambda x: (x.Online_Date, x.Work_Package_Interval_Conversion_Value, x.Cooling_Time, x.Train_Number, x.Work_Package_Number), reverse=False)
+    
+    # 统计同一时间上线的列车数量，以时间作为key，列车数量作为value
+    train_cnt = _count_num_trains_on_sametime(turnover_package)
+    
+    # 生成季度周转件约束
+    quarter_turnover_constraint = _quarter_turnover_constraint(turnover_package, quarter_list)
+    
+    for work in tqdm(turnover_package):
+        work.mainten_quarter = []
+        # 初始化基本信息
+        start_mainten_quarter = convert_day_to_quarter(work.Online_Date)
+        end_mainten_quarter = add_quarters(start_mainten_quarter, 120)
+
+        # 上次维修的季度
+        last_mainten_quarter = convert_day_to_quarter(work.last_mainten_time)
+        # 维修间隔的季度表示
+        interval_quarter = int(work.Work_Package_Interval_Conversion_Value / 90)
+
+        # 根据历史维修信息，计算下一次维修的季度
+        next_mainten_quarter = add_quarters(last_mainten_quarter, interval_quarter)
+        
+        # 如果下一次标准维修的季度小于当前季度，则将下一次维修季度设置为当前季度
+        if compare_quarters(next_mainten_quarter, current_quarter) == 1:  # next_mainten_quarter < current_quarter
+            next_mainten_quarter = current_quarter
+    
+        while compare_quarters(next_mainten_quarter, end_mainten_quarter) == 1:
+            float_range_ub = interval_quarter * 0.05
+
+            upper_bound = add_quarters(next_mainten_quarter, int(float_range_ub))
+
+            if compare_quarters(upper_bound, end_mainten_quarter) != 1:
+                upper_bound = add_quarters(end_mainten_quarter, -1)
+
+            if work.Shared_Cooling_Work_Package_Number == 'None':
+                float_range_lb = math.ceil(len(train_cnt[work.Online_Date]) / int(90 / work.Cooling_Time)) + turnover_overtake_quarter
+            else:
+                float_range_lb = math.ceil(2 * len(train_cnt[work.Online_Date]) / int(90 / work.Cooling_Time)) + turnover_overtake_quarter
+
+            lower_bound = add_quarters(upper_bound, -int(float_range_lb))
+
+            if compare_quarters(lower_bound, current_quarter) == 1:
+                lower_bound = current_quarter
+                upper_bound = add_quarters(current_quarter, int(math.ceil(float_range_lb + float_range_ub)))
+
+            # 找到符合周转件要求且工时负载最小的季度
+            range = gen_all_quarters(lower_bound, upper_bound)
+            while True:
+                if range == []:
+                    if compare_quarters(lower_bound, current_quarter) == 0:
+                        upper_bound = add_quarters(upper_bound, 1)
+                        range = gen_all_quarters(upper_bound, upper_bound)
+                    else:
+                        lower_bound = add_quarters(lower_bound, -1)
+                        range = gen_all_quarters(lower_bound, lower_bound)
+                    continue
+
+                selected_quarter = _select_less_quarter_interval(range, next_mainten_quarter)
+                if quarter_turnover_constraint[work.Work_Package_Number][selected_quarter] > 0:
+                    sum_interval += quarter_difference(next_mainten_quarter, selected_quarter)
+                    next_mainten_quarter = selected_quarter
+                    break
+                else:
+                    range.remove(selected_quarter)
+
+            # 对应周转件约束数量减一，记录维修日期
+            quarter_turnover_constraint[work.Work_Package_Number][next_mainten_quarter] -= 1
+            work.mainten_quarter.append(next_mainten_quarter)
+            # 更新下一次维修季度
+            next_mainten_quarter = add_quarters(next_mainten_quarter, interval_quarter)
+
+    print('正在处理全寿命计划的非周转件委外工作包...')
+
+    # 排序含有非周转件约束的工作包
+    not_turnover_package.sort(key=lambda x: (x.Work_Package_Interval_Conversion_Value, x.Online_Date, x.Cooling_Time, x.Train_Number, x.Work_Package_Number), reverse=False)
+
+    for work in tqdm(not_turnover_package):
+        work.mainten_quarter = []
+        # 初始化基本信息
+        start_mainten_quarter = convert_day_to_quarter(work.Online_Date)
+        end_mainten_quarter = add_quarters(start_mainten_quarter, 120)
+
+        # 上次维修的季度
+        last_mainten_quarter = convert_day_to_quarter(work.last_mainten_time)
+        # 维修间隔的季度表示
+        interval_quarter = int(work.Work_Package_Interval_Conversion_Value / 90)
+
+        # 根据历史维修信息，计算下一次维修的季度
+        next_mainten_quarter = add_quarters(last_mainten_quarter, int(work.Work_Package_Interval_Conversion_Value / 90))
+        
+        # 如果下一次标准维修的季度小于当前季度，则将下一次维修季度设置为当前季度
+        if compare_quarters(next_mainten_quarter, current_quarter) == 1:  # next_mainten_quarter < current_quarter
+            next_mainten_quarter = current_quarter
+            work.mainten_quarter.append(next_mainten_quarter)
+            # 更新下一次维修季度
+            next_mainten_quarter = add_quarters(next_mainten_quarter, interval_quarter)
+        else:
+            next_mainten_quarter = add_quarters(last_mainten_quarter, interval_quarter)
+        
+        while compare_quarters(next_mainten_quarter, end_mainten_quarter) == 1:
+            # 增加维修季度
+            work.mainten_quarter.append(next_mainten_quarter)
+
+            # 更新下一次维修季度
+            next_mainten_quarter = add_quarters(next_mainten_quarter, interval_quarter)
+
+    return turnover_package + not_turnover_package
+
 def _select_turnover_package(wholelife_workpackage):
     """
     从整个工作包中选择需要翻车的工作包和不需要翻车的工作包。
@@ -244,5 +383,13 @@ def _select_less_quarter_worktime_load(quarter_worktime_load, sum_interval, rang
     all = {}
     for i in range:
         all[i] = (quarter_worktime_load[i] + worktime) + (sum_interval + quarter_difference(i, next_mainten_quarter)) * alpha
+    min_key = min(all, key=all.get)
+    return min_key
+
+def _select_less_quarter_interval(range, next_mainten_quarter):
+    all = {}
+    for i in range:
+        all[i] = quarter_difference(i, next_mainten_quarter)
+    
     min_key = min(all, key=all.get)
     return min_key

@@ -45,6 +45,7 @@ def Wholelife_Plan(config):
             workpackage.Online_Date = train.Online_Date
             ALL_workpackage.append(workpackage)
     
+    # 非委外工作包
     work_package = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract != '委外']
 
     # 挑选维修间隔大于90天的工作包
@@ -52,8 +53,24 @@ def Wholelife_Plan(config):
     for work in work_package:
         if work.Work_Package_Interval_Conversion_Value > 90:
             WorkPackage_WholeLife.append(work)
+
+    # 获取全寿命计划的工作包排班结果
     result = wholelife_plan(WorkPackage_WholeLife, config)
-    output_wholeLife_plan(result)
+    
+    # 委外工作包
+    work_package_contract = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract == '委外']
+
+    # 挑选维修间隔大于90天的委外工作包
+    ContractPackage_WholeLife = []
+    for work in work_package_contract:
+        if work.Work_Package_Interval_Conversion_Value > 90:
+            ContractPackage_WholeLife.append(work)
+
+    # 获取全寿命计划的委外工作包排班结果
+    result_contract = wholelife_plan_contract(ContractPackage_WholeLife, config)
+
+    # 输出全寿命排班结果(包括委外)
+    output_wholeLife_plan(result+result_contract)
     
     
 def _read_exist_plan(file_path):
@@ -115,14 +132,35 @@ def Year_Plan(config):
         if key in wholelife_plan:
             info.mainten_quarter = wholelife_plan[key]
             wholelife.append(info)
-        if 30<info.Work_Package_Interval_Conversion_Value <= 90:
+        if 30 < info.Work_Package_Interval_Conversion_Value <= 90:
             year.append(info)
+    
+    # 获取年计划的工作包排班结果
     result = year_plan(year, wholelife, config)
-    output_year_plan(result)
+    
+    # 委外工作包
+    work_package_contract = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract == '委外']
+    
+    # 委外工作包的年计划
+    wholelife_contract = []
+    year_contract = []
+    for info in work_package_contract:
+        key = tuple([info.Train_Type, info.Train_Number, info.Work_Package_Number])
+        if key in wholelife_plan:
+            info.mainten_quarter = wholelife_plan[key]
+            wholelife_contract.append(info)
+        if 30 < info.Work_Package_Interval_Conversion_Value <= 90:
+            year_contract.append(info)
+    
+    # 获取年计划的委外工作包排班结果
+    result_contract = year_plan_contract(year_contract, wholelife_contract, config)
+    
+    # 输出年计划排班结果(包括委外)
+    output_year_plan(result+result_contract)
     
 def Month_Plan(config):
     # 读取不同类型的工作包、列车、约束等数据
-    # 列车数据
+    # 列车数据                                                    
     TrainData_list = read_TrainData(os.path.join(config['file_path'], config['TrainDataFilename']))
     Train_Data = [TrainData(train) for train in TrainData_list]
     # 工作包数据
@@ -169,9 +207,29 @@ def Month_Plan(config):
             month.append(info)
     result = month_plan(month, year, config)
     result = adjust(result, config)
-    exit(0)
     
-    output_month_plan(result)
+    # 委外工作包
+    work_package_contract = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract == '委外']
+    
+    # 读取委外工作包的年计划表
+    year_contract = []
+    month_contract = []
+    print('正在将现有的年计划分配至委外工作包...')
+    for info in work_package_contract:
+        key = tuple([info.Train_Type, info.Train_Number, info.Work_Package_Number])
+        if key in year_plan:
+            info.mainten_month = year_plan[key]
+            year_contract.append(info)
+        if info.Work_Package_Interval_Conversion_Value in [8, 16, 30]:
+            month_contract.append(info)
+    
+    # 获取年计划的委外工作包排班结果
+    result_contract = month_plan_contract(month_contract, year_contract, config)
+    
+    # 输出委外排班结果
+    output_month_plan(result+result_contract)
+    exit(0)
+
 
 def Week_Plan(config):
     filename = './results/月计划.xlsx'
@@ -188,15 +246,14 @@ if __name__ == '__main__':
     np.random.seed(int(config['seed']))
     random.seed(int(config['seed']))
     
-    # Wholelife_Plan(config)
-    # Year_Plan(config)
+    Wholelife_Plan(config)
+    Year_Plan(config)
     Month_Plan(config)
-    # Week_Plan(config)
     
     end_time = time.time()
     elapsed_time_in_seconds = end_time - start_time
     hours, remainder = divmod(elapsed_time_in_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
-
+    
     # 打印结果
     print(f"程序运行时间：{int(hours)}时{int(minutes)}分{int(seconds)}秒")
