@@ -53,12 +53,13 @@ def Wholelife_Plan(config):
     for work in work_package:
         if work.Work_Package_Interval_Conversion_Value > 90:
             WorkPackage_WholeLife.append(work)
-
-    # 获取全寿命计划的工作包排班结果
-    result = wholelife_plan(WorkPackage_WholeLife, config)
     
     # 委外工作包
     work_package_contract = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract == '委外']
+
+    # 委外工作包的工时赋值为0
+    for work in work_package_contract:
+        work.Work_Package_Person_Day = 0
 
     # 挑选维修间隔大于90天的委外工作包
     ContractPackage_WholeLife = []
@@ -66,11 +67,11 @@ def Wholelife_Plan(config):
         if work.Work_Package_Interval_Conversion_Value > 90:
             ContractPackage_WholeLife.append(work)
 
-    # 获取全寿命计划的委外工作包排班结果
-    result_contract = wholelife_plan_contract(ContractPackage_WholeLife, config)
+    # 获取全寿命计划的工作包排班结果
+    result = wholelife_plan(WorkPackage_WholeLife + ContractPackage_WholeLife, config)
 
     # 输出全寿命排班结果(包括委外)
-    output_wholeLife_plan(result+result_contract)
+    output_wholeLife_plan(result)
     
     
 def _read_exist_plan(file_path):
@@ -135,11 +136,12 @@ def Year_Plan(config):
         if 30 < info.Work_Package_Interval_Conversion_Value <= 90:
             year.append(info)
     
-    # 获取年计划的工作包排班结果
-    result = year_plan(year, wholelife, config)
-    
     # 委外工作包
     work_package_contract = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract == '委外']
+    
+    # 委外工作包的工时赋值为0
+    for work in work_package_contract:
+        work.Work_Package_Person_Day = 0
     
     # 委外工作包的年计划
     wholelife_contract = []
@@ -153,10 +155,10 @@ def Year_Plan(config):
             year_contract.append(info)
     
     # 获取年计划的委外工作包排班结果
-    result_contract = year_plan_contract(year_contract, wholelife_contract, config)
+    result = year_plan(year + year_contract, wholelife + wholelife_contract, config)
     
     # 输出年计划排班结果(包括委外)
-    output_year_plan(result+result_contract)
+    output_year_plan(result)
     
 def Month_Plan(config):
     # 读取不同类型的工作包、列车、约束等数据
@@ -205,11 +207,13 @@ def Month_Plan(config):
             year.append(info)
         if info.Work_Package_Interval_Conversion_Value in [8, 16, 30]:
             month.append(info)
-    result = month_plan(month, year, config)
-    result = adjust(result, config)
     
     # 委外工作包
     work_package_contract = [work for work in ALL_workpackage if work.Work_Package_Number not in SpecialWorkPackage and work.Work_Package_Contract == '委外']
+    
+    # 委外工作包的工时赋值为0
+    for work in work_package_contract:
+        work.Work_Package_Person_Day = 0
     
     # 读取委外工作包的年计划表
     year_contract = []
@@ -223,11 +227,13 @@ def Month_Plan(config):
         if info.Work_Package_Interval_Conversion_Value in [8, 16, 30]:
             month_contract.append(info)
     
-    # 获取年计划的委外工作包排班结果
-    result_contract = month_plan_contract(month_contract, year_contract, config)
+    # 获取月计划的工作包排班结果
+    result = month_plan(month + month_contract, year + year_contract, config)
+    
+    result = adjust(result, config)
     
     # 输出委外排班结果
-    output_month_plan(result+result_contract)
+    output_month_plan(result)
     exit(0)
 
 
